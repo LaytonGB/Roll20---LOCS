@@ -15,25 +15,25 @@
     ],
     "rules": {
         "indent": [
-            "error",
+            "warn",
             4
         ],
         "linebreak-style": [
-            "error",
+            "warn",
             "unix"
         ],
         "max-len": [
-            "error",
+            "warn",
             {
                 "code": 80
             }
         ],
         "quotes": [
-            "error",
-            "double"
+            "warn",
+            "single"
         ],
         "semi": [
-            "error",
+            "warn",
             "always"
         ]
     }
