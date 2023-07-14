@@ -17,7 +17,7 @@
   },
   "homepage": "https://gitlab.com/LaytonGB/token-state-api#readme",
   "devDependencies": {
-    "@types/roll20": "github:LaytonGB/types-roll20#testing",
+    "@types/roll20": "file:../types-roll20#testing",
     "@types/underscore": "^1.11.5",
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",
