@@ -24,18 +24,21 @@ export interface StateTrackerConfig {
 type StoredRoll20ObjectMap = NonNullable<unknown>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TokenStateApi = (() => {
+export const TokenStateApi = (() => {
     class StateTracker {
         private cache = new Map<string, StoredRoll20ObjectMap>();
         private trackedAttributes: string[];
         private trackedCharacterProperties: CharacterProperties[];
         private trackedGraphicProperties: GraphicProperties[];
 
-        constructor({
-            trackedAttributes,
-            trackedCharacterProperties,
-            trackedGraphicProperties,
-        }: StateTrackerConfig) {
+        constructor(
+            idArray: string[],
+            {
+                trackedAttributes,
+                trackedCharacterProperties,
+                trackedGraphicProperties,
+            }: StateTrackerConfig
+        ) {
             this.trackedAttributes = trackedAttributes || [];
             this.trackedCharacterProperties = trackedCharacterProperties || [];
             this.trackedGraphicProperties = trackedGraphicProperties || [];
@@ -158,7 +161,9 @@ const TokenStateApi = (() => {
     }
 
     return {
-        createStateTracker: (stateTrackerConfig: StateTrackerConfig) =>
-            new StateTracker(stateTrackerConfig),
+        createStateTracker: (
+            roll20IdArray: string[],
+            stateTrackerConfig: StateTrackerConfig
+        ) => new StateTracker(roll20IdArray, stateTrackerConfig),
     };
 })();

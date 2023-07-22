@@ -16,7 +16,10 @@
     "rules": {
         "indent": [
             "warn",
-            4
+            4,
+            {
+                "SwitchCase": 1
+            }
         ],
         "linebreak-style": [
             "warn",
@@ -28,6 +31,7 @@
                 "code": 80
             }
         ],
+        "@typescript-eslint/no-explicit-any": 0,
         "quotes": [
             "warn",
             "single"
