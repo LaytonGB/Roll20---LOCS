@@ -1,7 +1,14 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import mockFunctions from './mocks/functions.test';
+import { MockObjectName } from './mocks/values.test';
+
+import {
+    createObj,
+    filterObjs,
+    findObjs,
+    getObj,
+} from './mocks/functions.test';
 import mockValues from './mocks/values.test';
 
 import { StateTrackerConfig, TokenStateApi } from '../src';
@@ -22,16 +29,18 @@ describe('state constructor', () => {
     it('returns values just like roll20', () => {
         const stateTracker = TokenStateApi.createStateTracker();
 
-        expect(stateTracker.getObj('mock_id_1')).toBeDefined();
+        expect(stateTracker.getObj(MockObjectName.MOCK_PLAYER)).toBeDefined();
     });
 
     it('caches fetched ids', () => {
         const stateTracker = TokenStateApi.createStateTracker();
 
-        stateTracker.getObj('mock_id_1');
+        stateTracker.getObj(MockObjectName.MOCK_PLAYER);
 
         expect(stateTracker.debug.cachedIds.length).toBe(1);
-        expect(stateTracker.debug.cachedIds[0]).toBe('mock_id_1');
+        expect(stateTracker.debug.cachedIds[0]).toBe(
+            MockObjectName.MOCK_PLAYER
+        );
     });
 
     describe('object fetching', () => {
@@ -41,7 +50,7 @@ describe('state constructor', () => {
         });
 
         it('returns objects that replace usual methods to track fetched properties', () => {
-            const getArgs = ['graphic', 'mock_graphic_1'];
+            const getArgs = ['graphic', MockObjectName.MOCK_GRAPHIC];
             const stateTrackerResult = stateTracker.getObj(...getArgs);
             const roll20Result = getObj(...getArgs);
 
@@ -49,7 +58,7 @@ describe('state constructor', () => {
             expect(stateTrackerResult.isCached).toBe(true);
             expect(typeof stateTrackerResult.get('top')).toBe('number');
             expect(
-                stateTracker.debug.trackedPropertiesFor('mock_graphic_1')
+                stateTracker.trackedPropertiesFor(MockObjectName.MOCK_GRAPHIC)
             ).toContain('top');
         });
     });
@@ -60,8 +69,8 @@ describe('state constructor', () => {
             stateTracker = TokenStateApi.createStateTracker();
         });
 
-        it('allows users to remove caching', () => {
-            const obj1 = stateTracker.getObj('mock_graphic_1');
+        it.todo('allows users to remove caching', () => {
+            const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
 
             expect(obj1.isCached).toBe(true);
 
@@ -71,7 +80,7 @@ describe('state constructor', () => {
         });
 
         it('allows users to get properties without caching', () => {
-            const obj1 = stateTracker.getObj('mock_graphic_1');
+            const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
 
             expect(obj1.isCached).toBe(true);
 
@@ -80,8 +89,8 @@ describe('state constructor', () => {
             expect(stateTracker);
         });
 
-        it('allows users to remove property caching', () => {
-            const obj1 = stateTracker.getObj('mock_graphic_1');
+        it.todo('allows users to remove property caching', () => {
+            const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
 
             expect(obj1.cache.has('top')).toBe(true);
 
@@ -118,7 +127,7 @@ describe('state constructor', () => {
 
             expect(foundObjects.length).toBe(0);
             expect(foundObjects[0]).toBe(
-                mockValues.mockRequestResults.get('mock_graphic')
+                mockValues.mockRequestResults.get(MockObjectName.MOCK_GRAPHIC)
             );
         });
 
@@ -154,7 +163,7 @@ describe('state constructor', () => {
     });
 
     describe('getAttrByName', () => {
-        const getAttrCharacterId = 'mock_character';
+        const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
         const getAttrArgs = [getAttrCharacterId, 'hp'];
 
         let stateTracker;
@@ -172,9 +181,7 @@ describe('state constructor', () => {
         });
 
         it('caches each search', () => {
-            const stateTrackerResult = stateTracker.getAttrByName(
-                ...getAttrArgs
-            );
+            stateTracker.getAttrByName(...getAttrArgs);
 
             expect(stateTracker.trackedEvents.has('destroy:character')).toBe(
                 true

@@ -30,6 +30,14 @@ const mockObjectConstants = {
     mockGraphicLeft: 100,
 };
 
+export enum MockObjectName {
+    CREATED_CHARACTER = 'created_character',
+    MOCK_ATTRIBUTE = 'mock_attribute',
+    MOCK_CHARACTER = 'mock_character',
+    MOCK_GRAPHIC = 'mock_graphic',
+    MOCK_PLAYER = 'mock_player',
+}
+
 const mockObjectParams: {
     type: ObjectType;
     id: string;
