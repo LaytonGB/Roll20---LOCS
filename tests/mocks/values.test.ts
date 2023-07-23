@@ -25,27 +25,44 @@ function createRoll20Object(
     };
 }
 
-const mockedObjectParams: {
+const mockObjectConstants = {
+    mockGraphicTop: 30,
+    mockGraphicLeft: 100,
+};
+
+const mockObjectParams: {
     type: ObjectType;
     id: string;
     properties?: { [property: string]: any };
 }[] = [
+    {
+        type: 'attribute',
+        id: 'mock_attribute',
+        properties: { _characterid: 'mock_character', current: 10, max: 20 },
+    },
+    { type: 'character', id: 'created_character' },
     { type: 'character', id: 'mock_character' },
-    { type: 'graphic', id: 'mock_graphic' },
+    {
+        type: 'graphic',
+        id: 'mock_graphic',
+        properties: {
+            top: mockObjectConstants.mockGraphicTop,
+            left: mockObjectConstants.mockGraphicLeft,
+        },
+    },
     { type: 'player', id: 'mock_player' },
 ];
 
-const mockedRequestResults: Map<string, Roll20Object> =
-    mockedObjectParams.reduce(
-        (map: Map<string, Roll20Object>, { type, id, properties }) => {
-            map.set(id, createRoll20Object(type, id, properties));
-            return map;
-        },
-        new Map<string, Roll20Object>()
-    );
+const mockRequestResults: Map<string, Roll20Object> = mockObjectParams.reduce(
+    (map: Map<string, Roll20Object>, { type, id, properties }) => {
+        map.set(id, createRoll20Object(type, id, properties));
+        return map;
+    },
+    new Map<string, Roll20Object>()
+);
 
-const mockedRequestArgs = {
-    ids: Object.keys(mockedRequestResults),
+const mockRequestArgs = {
+    ids: Object.keys(mockRequestResults),
     trackerConfig: {
         trackedAttributes: ['hp'],
         trackedCharacterProperties: ['name'],
@@ -54,6 +71,7 @@ const mockedRequestArgs = {
 };
 
 export default {
-    mockedRequestArgs,
-    mockedRequestResults,
+    mockObjectConstants,
+    mockRequestArgs,
+    mockRequestResults,
 };

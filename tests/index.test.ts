@@ -6,8 +6,6 @@ import mockValues from './mocks/values.test';
 
 import { StateTrackerConfig, TokenStateApi } from '../src';
 
-mock();
-
 describe('state constructor', () => {
     it('can be created with no input', () => {
         const stateTracker = TokenStateApi.createStateTracker();
@@ -43,17 +41,20 @@ describe('state constructor', () => {
         });
 
         it('returns objects that replace usual methods to track fetched properties', () => {
-            const obj1 = stateTracker.getObj('mock_graphic_1');
+            const getArgs = ['graphic', 'mock_graphic_1'];
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
+            const roll20Result = getObj(...getArgs);
 
-            expect(obj1.isCached).toBe(true);
-            expect(typeof obj1.get('top')).toBe('number');
+            expect(stateTrackerResult).toBe(roll20Result);
+            expect(stateTrackerResult.isCached).toBe(true);
+            expect(typeof stateTrackerResult.get('top')).toBe('number');
             expect(
                 stateTracker.debug.trackedPropertiesFor('mock_graphic_1')
             ).toContain('top');
         });
     });
 
-    describe('object and property caching', () => {
+    describe('getObj caching', () => {
         let stateTracker;
         beforeEach(() => {
             stateTracker = TokenStateApi.createStateTracker();
@@ -87,6 +88,100 @@ describe('state constructor', () => {
             obj1.cache.remove('top');
 
             expect(obj1.cache.has('top')).toBe(false);
+        });
+    });
+
+    describe('object finding and filtering', () => {
+        const objSearchParams = {
+            type: 'graphic',
+            top: mockValues.mockObjectConstants.mockGraphicTop,
+        };
+
+        const objSearchParamsKey = Object.entries(objSearchParams)
+            .reduce(
+                (str, [parameter, searchValue]) =>
+                    str + `&${parameter}:${searchValue}`,
+                ''
+            )
+            .slice(1);
+
+        let stateTracker;
+        beforeEach(() => {
+            stateTracker = TokenStateApi.createStateTracker();
+        });
+
+        it('finds relevant items', () => {
+            const foundObjects = stateTracker.findObjs({
+                type: 'graphic',
+                top: mockValues.mockObjectConstants.mockGraphicTop,
+            });
+
+            expect(foundObjects.length).toBe(0);
+            expect(foundObjects[0]).toBe(
+                mockValues.mockRequestResults.get('mock_graphic')
+            );
+        });
+
+        it('caches previous searches', () => {
+            expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+                false
+            );
+
+            stateTracker.findObjs(objSearchParams);
+
+            expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+                true
+            );
+            expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
+            expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
+                true
+            );
+        });
+
+        it('allows cache removal', () => {
+            stateTracker.findObjs(objSearchParams);
+
+            expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+                true
+            );
+
+            stateTracker.trackedSearches.remove(objSearchParams);
+
+            expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+                false
+            );
+        });
+    });
+
+    describe('getAttrByName', () => {
+        const getAttrCharacterId = 'mock_character';
+        const getAttrArgs = [getAttrCharacterId, 'hp'];
+
+        let stateTracker;
+        beforeEach(() => {
+            stateTracker = TokenStateApi.createStateTracker();
+        });
+
+        it('gets the correct attribute', () => {
+            const stateTrackerResult = stateTracker.getAttrByName(
+                ...getAttrArgs
+            );
+            const roll20Result = getAttrByName(...getAttrArgs);
+
+            expect(stateTrackerResult).toBe(roll20Result);
+        });
+
+        it('caches each search', () => {
+            const stateTrackerResult = stateTracker.getAttrByName(
+                ...getAttrArgs
+            );
+
+            expect(stateTracker.trackedEvents.has('destroy:character')).toBe(
+                true
+            );
+            expect(
+                stateTracker.trackedPropertiesFor(getAttrCharacterId)
+            ).toContain('hp');
         });
     });
 });
