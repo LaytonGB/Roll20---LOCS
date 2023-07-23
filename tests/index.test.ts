@@ -3,12 +3,7 @@
 
 import { MockObjectName } from './mocks/values.test';
 
-import {
-    createObj,
-    filterObjs,
-    findObjs,
-    getObj,
-} from './mocks/functions.test';
+import { getObj } from './mocks/functions.test';
 import mockValues from './mocks/values.test';
 
 import { StateTrackerConfig, TokenStateApi } from '../src';
