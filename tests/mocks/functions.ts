@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import mockValues from './values.test';
+import mockValues from './values';
 
 function createObj(
     type: ObjectType,

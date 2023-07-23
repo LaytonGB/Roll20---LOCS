@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 
-import { MockObjectName } from './mocks/values.test';
+import { MockObjectName } from './mocks/values';
 
-import { getObj } from './mocks/functions.test';
-import mockValues from './mocks/values.test';
+import { getObj } from './mocks/functions';
+import mockValues from './mocks/values';
 
 import { StateTrackerConfig, TokenStateApi } from '../src';
 
@@ -64,7 +64,8 @@ describe('state constructor', () => {
             stateTracker = TokenStateApi.createStateTracker();
         });
 
-        it.todo('allows users to remove caching', () => {
+        it('allows users to remove caching', () => {
+            // TODO decide on syntax
             const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
 
             expect(obj1.isCached).toBe(true);
@@ -84,7 +85,8 @@ describe('state constructor', () => {
             expect(stateTracker);
         });
 
-        it.todo('allows users to remove property caching', () => {
+        it('allows users to remove property caching', () => {
+            // TODO decide syntax
             const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
 
             expect(obj1.cache.has('top')).toBe(true);
