@@ -3,10 +3,9 @@
 
 import { MockObjectName } from './mocks/values';
 
-import { getObj } from './mocks/functions';
 import mockValues from './mocks/values';
 
-import { StateTrackerConfig, TokenStateApi } from '../src';
+import { TokenStateApi } from '../src';
 
 describe('state constructor', () => {
     it('can be created with no input', () => {
@@ -18,82 +17,112 @@ describe('state constructor', () => {
     it('is empty on creation', () => {
         const stateTracker = TokenStateApi.createStateTracker();
 
-        expect(stateTracker.debug.cachedIds.length).toBe(0);
-    });
-
-    it('returns values just like roll20', () => {
-        const stateTracker = TokenStateApi.createStateTracker();
-
-        expect(stateTracker.getObj(MockObjectName.MOCK_PLAYER)).toBeDefined();
-    });
-
-    it('caches fetched ids', () => {
-        const stateTracker = TokenStateApi.createStateTracker();
-
-        stateTracker.getObj(MockObjectName.MOCK_PLAYER);
-
-        expect(stateTracker.debug.cachedIds.length).toBe(1);
-        expect(stateTracker.debug.cachedIds[0]).toBe(
-            MockObjectName.MOCK_PLAYER
-        );
+        expect(stateTracker.cachedIds.size).toBe(0);
     });
 
     describe('object fetching', () => {
+        const getArgs = ['player', MockObjectName.MOCK_PLAYER];
+
+        let stateTracker;
+        beforeEach(() => {
+            stateTracker = TokenStateApi.createStateTracker();
+        });
+
+        it('returns values just like roll20', () => {
+            const fetchedCharacter = stateTracker.getObj(...getArgs);
+
+            expect(fetchedCharacter).toBeDefined();
+            expect(typeof fetchedCharacter.id).toBe('string');
+        });
+
+        it('caches fetched ids', () => {
+            stateTracker.getObj(...getArgs);
+
+            expect(stateTracker.cachedIds.size).toBe(1);
+            expect(stateTracker.cachedIds.values().next().value).toBe(
+                MockObjectName.MOCK_PLAYER
+            );
+        });
+
+        it('adds a stateTracker property to objects', () => {
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
+
+            expect(stateTrackerResult.stateTracker).toBeDefined();
+        });
+    });
+
+    describe('object and property caching', () => {
+        const getArgs = ['graphic', MockObjectName.MOCK_GRAPHIC];
+
         let stateTracker;
         beforeEach(() => {
             stateTracker = TokenStateApi.createStateTracker();
         });
 
         it('returns objects that replace usual methods to track fetched properties', () => {
-            const getArgs = ['graphic', MockObjectName.MOCK_GRAPHIC];
             const stateTrackerResult = stateTracker.getObj(...getArgs);
-            const roll20Result = getObj(...getArgs);
 
-            expect(stateTrackerResult).toBe(roll20Result);
-            expect(stateTrackerResult.isCached).toBe(true);
             expect(typeof stateTrackerResult.get('top')).toBe('number');
             expect(
-                stateTracker.trackedPropertiesFor(MockObjectName.MOCK_GRAPHIC)
-            ).toContain('top');
-        });
-    });
-
-    describe('getObj caching', () => {
-        let stateTracker;
-        beforeEach(() => {
-            stateTracker = TokenStateApi.createStateTracker();
-        });
-
-        it('allows users to remove caching', () => {
-            // TODO decide on syntax
-            const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
-
-            expect(obj1.isCached).toBe(true);
-
-            obj1.cache.remove();
-
-            expect(obj1.isCached).toBe(false);
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(true);
         });
 
         it('allows users to get properties without caching', () => {
-            const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
+            const stateTrackerResult = stateTracker.getObj(
+                MockObjectName.MOCK_GRAPHIC
+            );
 
-            expect(obj1.isCached).toBe(true);
+            // TODO
+            expect(stateTrackerResult.isCached).toBe(true);
 
-            obj1.get_nocache('top');
+            stateTrackerResult.get_nocache('top');
 
-            expect(stateTracker);
+            expect(
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(false);
+        });
+
+        it('allows users to remove object caching', () => {
+            stateTracker.getObj(...getArgs);
+
+            expect(stateTracker.cachedIds.has(getArgs[1])).toBe(true);
+
+            stateTracker.cachedIds.remove(getArgs[1]);
+
+            expect(stateTracker.cachedIds.has(getArgs[1])).toBe(false);
         });
 
         it('allows users to remove property caching', () => {
-            // TODO decide syntax
-            const obj1 = stateTracker.getObj(MockObjectName.MOCK_GRAPHIC);
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
+            stateTrackerResult.get('top');
 
-            expect(obj1.cache.has('top')).toBe(true);
+            expect(
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(true);
 
-            obj1.cache.remove('top');
+            stateTrackerResult.stateTracker.trackedProps.remove('top');
 
-            expect(obj1.cache.has('top')).toBe(false);
+            expect(
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(false);
+        });
+
+        it('allows users to stop an object from being cached', () => {
+            stateTracker.blackLists.ids.add(getArgs[1]);
+            stateTracker.getObj(...getArgs);
+
+            expect(stateTracker.cacheIds.has(getArgs[1])).toBe(false);
+        });
+
+        it('allows users to stop an object property from being cached', () => {
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
+            stateTracker.blackLists.properties.add('top');
+            stateTrackerResult.get('top');
+
+            expect(
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(false);
         });
     });
 
