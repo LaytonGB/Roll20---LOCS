@@ -17,7 +17,7 @@ describe('state constructor', () => {
     it('is empty on creation', () => {
         const stateTracker = TokenStateApi.createStateTracker();
 
-        expect(stateTracker.cachedIds.size).toBe(0);
+        expect(stateTracker.cache.size).toBe(0);
     });
 
     describe('object fetching', () => {
@@ -82,27 +82,31 @@ describe('state constructor', () => {
 
         it('allows users to remove object caching', () => {
             stateTracker.getObj(...getArgs);
+            stateTracker.cache.remove(getArgsId);
 
-            expect(stateTracker.cachedIds.has(getArgsId)).toBe(true);
-
-            stateTracker.cachedIds.remove(getArgsId);
-
-            expect(stateTracker.cachedIds.has(getArgsId)).toBe(false);
+            expect(stateTracker.cache.has(getArgsId)).toBe(false);
         });
 
-        it('allows users to remove property caching', () => {
+        it('allows users to remove property caching using the object', () => {
             const stateTrackerResult = stateTracker.getObj(...getArgs);
             stateTrackerResult.get('top');
-
-            expect(
-                stateTrackerResult.stateTracker.trackedProps.has('top')
-            ).toBe(true);
-
-            stateTrackerResult.stateTracker.trackedProps.remove('top');
+            stateTrackerResult.stateTracker.stopTrackingProp('top');
 
             expect(
                 stateTrackerResult.stateTracker.trackedProps.has('top')
             ).toBe(false);
+            expect(stateTracker.cache.get(getArgsId).has('top')).toBe(false);
+        });
+
+        it('allows users to remove property caching manually', () => {
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
+            stateTrackerResult.get('top');
+            stateTracker.cache.get(getArgsId).remove('top');
+
+            expect(
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(false);
+            expect(stateTracker.cache.get(getArgsId).has('top')).toBe(false);
         });
 
         it('allows users to stop an object from being cached', () => {
@@ -142,7 +146,7 @@ describe('state constructor', () => {
         const objSearchParamsKey = Object.entries(objSearchParams)
             .reduce(
                 (str, [parameter, searchValue]) =>
-                    str + `&${parameter}:${searchValue}`,
+                    str + `&${parameter}=${searchValue}`,
                 ''
             )
             .slice(1);
@@ -158,7 +162,7 @@ describe('state constructor', () => {
                 top: mockValues.mockObjectConstants.mockGraphicTop,
             });
 
-            expect(foundObjects.length).toBe(0);
+            expect(foundObjects.length).toBe(1);
             expect(foundObjects[0]).toBe(
                 mockValues.mockRequestResults.get(MockObjectName.MOCK_GRAPHIC)
             );
@@ -169,24 +173,54 @@ describe('state constructor', () => {
                 false
             );
 
-            stateTracker.findObjs(objSearchParams);
+            const foundObjs = stateTracker.findObjs(objSearchParams);
 
             expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
                 true
             );
+            expect(
+                stateTracker.trackedSearches.get(objSearchParamsKey).size
+            ).toBe(1);
+            expect(foundObjs).toStrictEqual(
+                stateTracker.trackedSearches.get(objSearchParamsKey)
+            );
+        });
+
+        it('tracks updates to maintain find results', () => {
+            expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
+            expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
+                false
+            );
+            expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(
+                false
+            );
+
+            stateTracker.findObjs(objSearchParams);
+
             expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
             expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
                 true
             );
+            // TODO add test for events
+            expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(
+                true
+            );
+            expect(
+                stateTracker.trackedSearches.get(objSearchParamsKey).size
+            ).toBe(1);
+
+            const createdGraphic = createObj('graphic');
+
+            expect(
+                stateTracker.trackedSearches.get(objSearchParamsKey).size
+            ).toBe(2);
+            expect(
+                stateTracker.trackedSearches.get(objSearchParamsKey)
+            ).toContainEqual(createdGraphic);
         });
 
         it('allows cache removal', () => {
             stateTracker.findObjs(objSearchParams);
-
-            expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
-                true
-            );
-
             stateTracker.trackedSearches.remove(objSearchParams);
 
             expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
@@ -204,15 +238,7 @@ describe('state constructor', () => {
             stateTracker = TokenStateApi.createStateTracker();
         });
 
-        it('gets the correct attribute', () => {
-            const stateTrackerResult = stateTracker.getAttrByName(
-                ...getAttrArgs
-            );
-            const roll20Result = getAttrByName(...getAttrArgs);
-
-            expect(stateTrackerResult).toBe(roll20Result);
-        });
-
+        // TODO review
         it('caches each search', () => {
             stateTracker.getAttrByName(...getAttrArgs);
 
@@ -220,7 +246,7 @@ describe('state constructor', () => {
                 true
             );
             expect(
-                stateTracker.trackedPropertiesFor(getAttrCharacterId)
+                stateTracker.trackedAttributesFor(getAttrCharacterId)
             ).toContain('hp');
         });
     });

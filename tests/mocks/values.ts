@@ -32,6 +32,7 @@ const mockObjectConstants = {
 
 export enum MockObjectName {
     CREATED_CHARACTER = 'created_character',
+    CREATED_GRAPHIC = 'created_graphic',
     MOCK_ATTRIBUTE = 'mock_attribute',
     MOCK_CHARACTER = 'mock_character',
     MOCK_GRAPHIC = 'mock_graphic',
@@ -45,20 +46,32 @@ const mockObjectParams: {
 }[] = [
     {
         type: 'attribute',
-        id: 'mock_attribute',
-        properties: { _characterid: 'mock_character', current: 10, max: 20 },
+        id: MockObjectName.MOCK_ATTRIBUTE,
+        properties: {
+            _characterid: MockObjectName.MOCK_CHARACTER,
+            current: 10,
+            max: 20,
+        },
     },
-    { type: 'character', id: 'created_character' },
-    { type: 'character', id: 'mock_character' },
+    { type: 'character', id: MockObjectName.CREATED_CHARACTER },
+    { type: 'character', id: MockObjectName.MOCK_CHARACTER },
     {
         type: 'graphic',
-        id: 'mock_graphic',
+        id: MockObjectName.CREATED_GRAPHIC,
         properties: {
             top: mockObjectConstants.mockGraphicTop,
             left: mockObjectConstants.mockGraphicLeft,
         },
     },
-    { type: 'player', id: 'mock_player' },
+    {
+        type: 'graphic',
+        id: MockObjectName.MOCK_GRAPHIC,
+        properties: {
+            top: mockObjectConstants.mockGraphicTop,
+            left: mockObjectConstants.mockGraphicLeft,
+        },
+    },
+    { type: 'player', id: MockObjectName.MOCK_PLAYER },
 ];
 
 const mockRequestResults: Map<string, Roll20Object> = mockObjectParams.reduce(
