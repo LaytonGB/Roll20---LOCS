@@ -11,13 +11,19 @@ export interface IStateTrackerFactory {
 
 // this matches the property and method signatures of the StateTracker class
 export interface IStateTracker {
-    cache: Map<string, Set<string>>;
+    cache: Map<string, Map<string, any>>;
+
+    getObj: (type: ObjectType, id: string) => Roll20Object | undefined;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const TokenStateApi = (() => {
     class StateTracker {
-        public cache: Map<string, Set<string>> = new Map();
+        cache: IStateTracker['cache'] = new Map();
+
+        getObj: IStateTracker['getObj'] = (type: ObjectType, id: string) => {
+            return getObj(type, id);
+        };
     }
 
     return {

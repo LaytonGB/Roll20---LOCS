@@ -7,7 +7,7 @@ import mockValues from './mocks/values';
 
 import { TokenStateApi } from '../src';
 
-describe.only('state constructor', () => {
+describe('state constructor', () => {
     it('can be created with no input', () => {
         const stateTracker = TokenStateApi.createStateTracker();
 
@@ -21,7 +21,7 @@ describe.only('state constructor', () => {
     });
 });
 
-describe('object fetching', () => {
+describe.only('object fetching', () => {
     const getArgsType = 'graphic';
     const getArgsId = MockObjectName.MOCK_PLAYER;
     const getArgs = [getArgsType, getArgsId];
