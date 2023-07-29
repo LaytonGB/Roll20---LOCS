@@ -7,7 +7,7 @@ import mockValues from './mocks/values';
 
 import { TokenStateApi } from '../src';
 
-describe('state constructor', () => {
+describe.only('state constructor', () => {
     it('can be created with no input', () => {
         const stateTracker = TokenStateApi.createStateTracker();
 
