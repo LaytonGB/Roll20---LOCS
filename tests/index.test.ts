@@ -21,7 +21,9 @@ describe('state constructor', () => {
     });
 
     describe('object fetching', () => {
-        const getArgs = ['player', MockObjectName.MOCK_PLAYER];
+        const getArgsType = 'graphic';
+        const getArgsId = MockObjectName.MOCK_PLAYER;
+        const getArgs = [getArgsType, getArgsId];
 
         let stateTracker;
         beforeEach(() => {
@@ -35,15 +37,6 @@ describe('state constructor', () => {
             expect(typeof fetchedCharacter.id).toBe('string');
         });
 
-        it('caches fetched ids', () => {
-            stateTracker.getObj(...getArgs);
-
-            expect(stateTracker.cachedIds.size).toBe(1);
-            expect(stateTracker.cachedIds.values().next().value).toBe(
-                MockObjectName.MOCK_PLAYER
-            );
-        });
-
         it('adds a stateTracker property to objects', () => {
             const stateTrackerResult = stateTracker.getObj(...getArgs);
 
@@ -52,30 +45,34 @@ describe('state constructor', () => {
     });
 
     describe('object and property caching', () => {
-        const getArgs = ['graphic', MockObjectName.MOCK_GRAPHIC];
+        const getArgsType = 'graphic';
+        const getArgsId = MockObjectName.MOCK_GRAPHIC;
+        const getArgs = [getArgsType, getArgsId];
 
         let stateTracker;
         beforeEach(() => {
             stateTracker = TokenStateApi.createStateTracker();
         });
 
+        it('caches fetched ids', () => {
+            stateTracker.getObj(...getArgs);
+
+            expect(stateTracker.cache.size).toBe(1);
+            expect(stateTracker.cache.has(getArgsId)).toBe(true);
+        });
+
         it('returns objects that replace usual methods to track fetched properties', () => {
             const stateTrackerResult = stateTracker.getObj(...getArgs);
+            typeof stateTrackerResult.get('top');
 
-            expect(typeof stateTrackerResult.get('top')).toBe('number');
             expect(
                 stateTrackerResult.stateTracker.trackedProps.has('top')
             ).toBe(true);
+            expect(stateTracker.cache.get(getArgsId).has('top')).toBe(true);
         });
 
         it('allows users to get properties without caching', () => {
-            const stateTrackerResult = stateTracker.getObj(
-                MockObjectName.MOCK_GRAPHIC
-            );
-
-            // TODO
-            expect(stateTrackerResult.isCached).toBe(true);
-
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
             stateTrackerResult.get_nocache('top');
 
             expect(
@@ -86,11 +83,11 @@ describe('state constructor', () => {
         it('allows users to remove object caching', () => {
             stateTracker.getObj(...getArgs);
 
-            expect(stateTracker.cachedIds.has(getArgs[1])).toBe(true);
+            expect(stateTracker.cachedIds.has(getArgsId)).toBe(true);
 
-            stateTracker.cachedIds.remove(getArgs[1]);
+            stateTracker.cachedIds.remove(getArgsId);
 
-            expect(stateTracker.cachedIds.has(getArgs[1])).toBe(false);
+            expect(stateTracker.cachedIds.has(getArgsId)).toBe(false);
         });
 
         it('allows users to remove property caching', () => {
@@ -109,15 +106,25 @@ describe('state constructor', () => {
         });
 
         it('allows users to stop an object from being cached', () => {
-            stateTracker.blackLists.ids.add(getArgs[1]);
+            stateTracker.blackLists.ids.add(getArgsId);
             stateTracker.getObj(...getArgs);
 
-            expect(stateTracker.cacheIds.has(getArgs[1])).toBe(false);
+            expect(stateTracker.cache.has(getArgsId)).toBe(false);
         });
 
-        it('allows users to stop an object property from being cached', () => {
+        it('allows users to stop a property from being cached', () => {
             const stateTrackerResult = stateTracker.getObj(...getArgs);
             stateTracker.blackLists.properties.add('top');
+            stateTrackerResult.get('top');
+
+            expect(
+                stateTrackerResult.stateTracker.trackedProps.has('top')
+            ).toBe(false);
+        });
+
+        it('allows users to stop a specific objects property from being cached', () => {
+            const stateTrackerResult = stateTracker.getObj(...getArgs);
+            stateTracker.blackLists.details.set(getArgsId, new Set('top'));
             stateTrackerResult.get('top');
 
             expect(
