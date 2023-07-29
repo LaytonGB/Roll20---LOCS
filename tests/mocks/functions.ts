@@ -65,7 +65,7 @@ function getAttrByName(
     return attribute.get(value_type);
 }
 
-function getObj(_type: ObjectType, id: string): Roll20Object {
+function getObj(type: ObjectType, id: string): Roll20Object | undefined {
     const mockIds = mockValues.mockRequestArgs.ids;
     if (!mockIds.includes(id)) {
         throw new Error('invalid mock id');
@@ -83,5 +83,6 @@ export default {
     createObj,
     filterObjs,
     findObjs,
+    getAttrByName,
     getObj,
 };
