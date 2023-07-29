@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 
 import { MockObjectName } from './mocks/values';
-
 import mockValues from './mocks/values';
+import mockFunctions from './mocks/functions';
 
-import { TokenStateApi } from '../src';
+import { IStateTracker, TokenStateApi } from '../src';
+
+const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(
+    mockFunctions.getObj
+);
+jest.spyOn(global, 'getObj').mockImplementation(getObjMock);
 
 describe('state constructor', () => {
     it('can be created with no input', () => {
@@ -24,9 +28,9 @@ describe('state constructor', () => {
 describe.only('object fetching', () => {
     const getArgsType = 'graphic';
     const getArgsId = MockObjectName.MOCK_PLAYER;
-    const getArgs = [getArgsType, getArgsId];
+    const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-    let stateTracker;
+    let stateTracker: IStateTracker;
     beforeEach(() => {
         stateTracker = TokenStateApi.createStateTracker();
     });
@@ -35,22 +39,22 @@ describe.only('object fetching', () => {
         const fetchedCharacter = stateTracker.getObj(...getArgs);
 
         expect(fetchedCharacter).toBeDefined();
-        expect(typeof fetchedCharacter.id).toBe('string');
+        expect(typeof fetchedCharacter?.id).toBe('string');
     });
 
     it('adds a stateTracker property to objects', () => {
         const stateTrackerResult = stateTracker.getObj(...getArgs);
 
-        expect(stateTrackerResult.stateTracker).toBeDefined();
+        expect(stateTrackerResult?.stateTracker).toBeDefined();
     });
 });
 
 describe('object and property caching', () => {
     const getArgsType = 'graphic';
     const getArgsId = MockObjectName.MOCK_GRAPHIC;
-    const getArgs = [getArgsType, getArgsId];
+    const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-    let stateTracker;
+    let stateTracker: IStateTracker;
     beforeEach(() => {
         stateTracker = TokenStateApi.createStateTracker();
     });
@@ -64,9 +68,9 @@ describe('object and property caching', () => {
 
     it('returns objects that replace usual methods to track fetched properties', () => {
         const stateTrackerResult = stateTracker.getObj(...getArgs);
-        typeof stateTrackerResult.get('top');
+        typeof stateTrackerResult?.get('top');
 
-        expect(stateTrackerResult.stateTracker.trackedProps.has('top')).toBe(
+        expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
             true
         );
         expect(stateTracker.cache.get(getArgsId).has('top')).toBe(true);
@@ -152,7 +156,7 @@ describe('object finding and filtering', () => {
         )
         .slice(1);
 
-    let stateTracker;
+    let stateTracker: IStateTracker;
     beforeEach(() => {
         stateTracker = TokenStateApi.createStateTracker();
     });
@@ -226,7 +230,7 @@ describe('getAttrByName', () => {
     const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
     const getAttrArgs = [getAttrCharacterId, 'hp'];
 
-    let stateTracker;
+    let stateTracker: IStateTracker;
     beforeEach(() => {
         stateTracker = TokenStateApi.createStateTracker();
     });
