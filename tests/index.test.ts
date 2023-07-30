@@ -196,7 +196,7 @@ describe.only('object finding and filtering', () => {
         expect(foundObjectIds).toMatchObject(objSearchResultIds);
     });
 
-    it('caches previous searches', () => {
+    it('caches previous searches if type is given', () => {
         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
             false
         );
@@ -209,6 +209,21 @@ describe.only('object finding and filtering', () => {
         ).toBe(2);
     });
 
+    // TODO add caching for searches with no type.
+    // Parts:
+    // - add an event for every change type (test if needed)
+    it('caches nothing if type is excluded', () => {
+        expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+            false
+        );
+
+        stateTracker.findObjs({ top: objSearchParams.top });
+
+        expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+            false
+        );
+    });
+
     it('tracks updates to maintain find results', () => {
         expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
         expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
@@ -219,12 +234,12 @@ describe.only('object finding and filtering', () => {
         stateTracker.findObjs(objSearchParams);
 
         // TODO add test to check that events perform correct actions
-        expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
-        expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(true);
-        expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(true);
-        expect(
-            stateTracker.trackedSearches.get(objSearchParamsKey)?.length
-        ).toBe(1);
+        const { _type, top } = objSearchParams;
+        expect(stateTracker.trackedEvents.has(`add:${_type}`)).toBe(true);
+        expect(stateTracker.trackedEvents.has(`change:${_type}:${top}`)).toBe(
+            true
+        );
+        expect(stateTracker.trackedEvents.has(`destroy:${_type}`)).toBe(true);
 
         const createdGraphic = createObj('graphic', {
             _pageid: MockObjectName.MOCK_PAGE,

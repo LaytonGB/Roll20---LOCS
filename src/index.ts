@@ -120,7 +120,7 @@ export const TokenStateApi = (() => {
 
             const roll20Result = findObjs(properties);
             const newCacheValue: [ObjectType, Roll20Id][] = [];
-            if (roll20Result.length > 0) {
+            if (roll20Result.length > 0 && properties._type) {
                 this.trackedSearches.set(cacheKey, newCacheValue);
             }
             return roll20Result.map((roll20Obj) => {
