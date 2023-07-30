@@ -22,6 +22,7 @@ export interface IStateTracker {
         properties: Set<string>;
     };
     cache: Map<Roll20Id, IStateTrackerObjectProps>;
+    trackedEvents: Map<string, (eventDetails: any) => void>;
     trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
 
     findObjs: (properties: {
@@ -36,9 +37,9 @@ export const TokenStateApi = (() => {
     class StateTrackerObject implements IStateTrackerObject {
         private stateTrackerObject: IStateTracker;
 
-        id;
-        type;
-        stateTracker;
+        id: string;
+        type: ObjectType;
+        stateTracker: IStateTrackerObjectProps;
 
         constructor(
             type: ObjectType,
@@ -103,6 +104,7 @@ export const TokenStateApi = (() => {
             properties: new Set<string>(),
         };
         cache = new Map<Roll20Id, IStateTrackerObjectProps>();
+        trackedEvents = new Map<string, (eventDetails: any) => void>();
         trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
         findObjs(properties: {
@@ -186,7 +188,10 @@ export const TokenStateApi = (() => {
                 .join('&');
         }
 
-        private newEmptyTrackerObjectProps(type: ObjectType, id: Roll20Id) {
+        private newEmptyTrackerObjectProps(
+            type: ObjectType,
+            id: Roll20Id
+        ): IStateTrackerObjectProps {
             return {
                 trackedEvents: new Map(),
                 trackedProps: new Map([

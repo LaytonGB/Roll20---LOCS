@@ -201,43 +201,42 @@ describe.only('object finding and filtering', () => {
             false
         );
 
-        const foundObjs = stateTracker.findObjs(objSearchParams);
+        stateTracker.findObjs(objSearchParams);
 
         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
         expect(
             stateTracker.trackedSearches.get(objSearchParamsKey)?.length
         ).toBe(2);
-        expect(foundObjs).toStrictEqual(
-            stateTracker.trackedSearches.get(objSearchParamsKey)
-        );
     });
 
-    // it('tracks updates to maintain find results', () => {
-    //     expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
-    //     expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
-    //         false
-    //     );
-    //     expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
+    it('tracks updates to maintain find results', () => {
+        expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
+        expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
+        expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
+            false
+        );
 
-    //     stateTracker.findObjs(objSearchParams);
+        stateTracker.findObjs(objSearchParams);
 
-    //     expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
-    //     expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(true);
-    //     // TODO add test for events
-    //     expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(true);
-    //     expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
-    //         1
-    //     );
+        // TODO add test to check that events perform correct actions
+        expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
+        expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(true);
+        expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(true);
+        expect(
+            stateTracker.trackedSearches.get(objSearchParamsKey)?.length
+        ).toBe(1);
 
-    //     const createdGraphic = createObj('graphic');
+        const createdGraphic = createObj('graphic', {
+            _pageid: MockObjectName.MOCK_PAGE,
+        } as GraphicCreationProperties);
 
-    //     expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
-    //         2
-    //     );
-    //     expect(
-    //         stateTracker.trackedSearches.get(objSearchParamsKey)
-    //     ).toContainEqual(createdGraphic);
-    // });
+        expect(
+            stateTracker.trackedSearches.get(objSearchParamsKey)?.length
+        ).toBe(2);
+        expect(stateTracker.trackedSearches.get(objSearchParamsKey)).toContain(
+            createdGraphic?.id
+        );
+    });
 
     // it('allows cache removal', () => {
     //     stateTracker.findObjs(objSearchParams);

@@ -11,6 +11,7 @@ export enum MockObjectName {
     MOCK_ATTRIBUTE = 'mock_attribute',
     MOCK_CHARACTER = 'mock_character',
     MOCK_GRAPHIC = 'mock_graphic',
+    MOCK_PAGE = 'mock_page',
     MOCK_PLAYER = 'mock_player',
 }
 
@@ -46,6 +47,7 @@ const mockObjectParams: {
             left: mockObjectConstants.mockGraphicLeft,
         },
     },
+    { type: 'page', id: MockObjectName.MOCK_PAGE },
     { type: 'player', id: MockObjectName.MOCK_PLAYER },
 ];
 
