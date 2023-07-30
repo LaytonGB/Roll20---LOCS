@@ -10,11 +10,19 @@ import { IStateTracker, TokenStateApi } from '../src';
 global.getObj = () => {
     return;
 };
-
 const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(
     mockFunctions.getObj
 );
 jest.spyOn(global, 'getObj').mockImplementation(getObjMock);
+
+// @ts-ignore
+global.findObjs = () => {
+    return;
+};
+const findObjsMock = jest.fn<Roll20Object[], [{ [property: string]: any }]>(
+    mockFunctions.findObjs
+);
+jest.spyOn(global, 'findObjs').mockImplementation(findObjsMock);
 
 describe('state constructor', () => {
     it('can be created with no input', () => {
@@ -54,7 +62,7 @@ describe('object fetching', () => {
     });
 });
 
-describe.only('object and property caching', () => {
+describe('object and property caching', () => {
     const getArgsType = 'graphic';
     const getArgsId = MockObjectName.MOCK_GRAPHIC;
     const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
@@ -127,8 +135,9 @@ describe.only('object and property caching', () => {
 
     it('allows users to stop an object from being cached', () => {
         stateTracker.blacklist.ids.add(getArgsId);
-        stateTracker.getObj(...getArgs);
+        const stateTrackerResult = stateTracker.getObj(...getArgs);
 
+        expect(stateTrackerResult).toBeDefined();
         expect(stateTracker.cache.has(getArgsId)).toBe(false);
     });
 
@@ -137,105 +146,108 @@ describe.only('object and property caching', () => {
         stateTracker.blacklist.properties.add('top');
         stateTrackerResult?.get('top');
 
+        expect(stateTrackerResult).toBeDefined();
         expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
             false
         );
     });
 
     it('allows users to stop a specific objects property from being cached', () => {
-        const stateTrackerResult = stateTracker.getObj(...getArgs);
         stateTracker.blacklist.details.set(getArgsId, new Set(['top']));
+        const stateTrackerResult = stateTracker.getObj(...getArgs);
         stateTrackerResult?.get('top');
 
+        expect(stateTrackerResult).toBeDefined();
         expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
             false
         );
     });
 });
 
-// describe('object finding and filtering', () => {
-//     const objSearchParams = {
-//         type: 'graphic',
-//         top: mockValues.mockObjectConstants.mockGraphicTop,
-//     };
+describe.only('object finding and filtering', () => {
+    const objSearchParams = {
+        _type: 'graphic',
+        top: mockValues.mockObjectConstants.mockGraphicTop,
+    };
+    const objSearchResultIds = [
+        MockObjectName.CREATED_GRAPHIC,
+        MockObjectName.MOCK_GRAPHIC,
+    ];
 
-//     const objSearchParamsKey = Object.entries(objSearchParams)
-//         .reduce(
-//             (str, [parameter, searchValue]) =>
-//                 str + `&${parameter}=${searchValue}`,
-//             ''
-//         )
-//         .slice(1);
+    const objSearchParamsKey = Object.entries(objSearchParams)
+        .reduce(
+            (str, [parameter, searchValue]) =>
+                str + `&${parameter}=${searchValue}`,
+            ''
+        )
+        .slice(1);
 
-//     let stateTracker: IStateTracker;
-//     beforeEach(() => {
-//         stateTracker = TokenStateApi.createStateTracker();
-//     });
+    let stateTracker: IStateTracker;
+    beforeEach(() => {
+        stateTracker = TokenStateApi.createStateTracker();
+    });
 
-//     it('finds relevant items', () => {
-//         const foundObjects = stateTracker.findObjs({
-//             type: 'graphic',
-//             top: mockValues.mockObjectConstants.mockGraphicTop,
-//         });
+    it('finds relevant items', () => {
+        const foundObjects = stateTracker.findObjs(objSearchParams);
 
-//         expect(foundObjects.length).toBe(1);
-//         expect(foundObjects[0]).toBe(
-//             mockValues.mockRequestResults.get(MockObjectName.MOCK_GRAPHIC)
-//         );
-//     });
+        expect(foundObjects.length).toBe(2);
 
-//     it('caches previous searches', () => {
-//         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
-//             false
-//         );
+        const foundObjectIds = foundObjects.map((obj) => obj.id);
+        expect(foundObjectIds).toMatchObject(objSearchResultIds);
+    });
 
-//         const foundObjs = stateTracker.findObjs(objSearchParams);
+    it('caches previous searches', () => {
+        expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+            false
+        );
 
-//         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
-//         expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
-//             1
-//         );
-//         expect(foundObjs).toStrictEqual(
-//             stateTracker.trackedSearches.get(objSearchParamsKey)
-//         );
-//     });
+        const foundObjs = stateTracker.findObjs(objSearchParams);
 
-//     it('tracks updates to maintain find results', () => {
-//         expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
-//         expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
-//             false
-//         );
-//         expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
+        expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
+        expect(
+            stateTracker.trackedSearches.get(objSearchParamsKey)?.length
+        ).toBe(1);
+        expect(foundObjs).toStrictEqual(
+            stateTracker.trackedSearches.get(objSearchParamsKey)
+        );
+    });
 
-//         stateTracker.findObjs(objSearchParams);
+    // it('tracks updates to maintain find results', () => {
+    //     expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
+    //     expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
+    //         false
+    //     );
+    //     expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
 
-//         expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
-//         expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(true);
-//         // TODO add test for events
-//         expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(true);
-//         expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
-//             1
-//         );
+    //     stateTracker.findObjs(objSearchParams);
 
-//         const createdGraphic = createObj('graphic');
+    //     expect(stateTracker.trackedEvents.has('add:graphic')).toBe(true);
+    //     expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(true);
+    //     // TODO add test for events
+    //     expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(true);
+    //     expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
+    //         1
+    //     );
 
-//         expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
-//             2
-//         );
-//         expect(
-//             stateTracker.trackedSearches.get(objSearchParamsKey)
-//         ).toContainEqual(createdGraphic);
-//     });
+    //     const createdGraphic = createObj('graphic');
 
-//     it('allows cache removal', () => {
-//         stateTracker.findObjs(objSearchParams);
-//         stateTracker.trackedSearches.remove(objSearchParams);
+    //     expect(stateTracker.trackedSearches.get(objSearchParamsKey).size).toBe(
+    //         2
+    //     );
+    //     expect(
+    //         stateTracker.trackedSearches.get(objSearchParamsKey)
+    //     ).toContainEqual(createdGraphic);
+    // });
 
-//         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
-//             false
-//         );
-//     });
-// });
+    // it('allows cache removal', () => {
+    //     stateTracker.findObjs(objSearchParams);
+    //     stateTracker.trackedSearches.remove(objSearchParams);
+
+    //     expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
+    //         false
+    //     );
+    // });
+});
 
 // describe('getAttrByName', () => {
 //     const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;

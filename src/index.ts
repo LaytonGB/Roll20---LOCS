@@ -27,6 +27,11 @@ export interface IStateTracker {
         properties: Set<string>;
     };
     cache: Map<string, IStateTrackerObjectProps>;
+    trackedSearches: Map<string, [ObjectType, string][]>;
+
+    findObjs: (properties: {
+        [property: string]: any;
+    }) => IStateTrackerObject[];
 
     getObj: (type: ObjectType, id: string) => IStateTrackerObject | undefined;
 }
@@ -102,12 +107,37 @@ export const TokenStateApi = (() => {
             ids: new Set<string>(),
             properties: new Set<string>(),
         };
-        cache: IStateTracker['cache'] = new Map();
+        cache = new Map<string, IStateTrackerObjectProps>();
+        trackedSearches = new Map<string, [ObjectType, string][]>();
+
+        findObjs(properties: {
+            [property: string]: any;
+        }): IStateTrackerObject[] {
+            const cacheKey = this.keyFromSearchArgs(properties);
+            const cacheResult = this.trackedSearches.get(cacheKey);
+            if (cacheResult) {
+                return cacheResult
+                    .map(([type, id]) => this.getObj(type, id))
+                    .filter((obj) => obj) as IStateTrackerObject[];
+            }
+
+            const roll20Result = findObjs(properties);
+            return roll20Result.map((roll20Obj) => {
+                const type = roll20Obj.get('_type');
+                const id = roll20Obj.id;
+                const cacheResult = this.cache.get(id);
+                return this.createTrackerObject(
+                    type,
+                    id,
+                    cacheResult || this.newEmptyTrackerObjectProps(type, id)
+                );
+            });
+        }
 
         getObj(type: ObjectType, id: string): IStateTrackerObject | undefined {
             const cacheResult = this.cache.get(id);
             if (cacheResult) {
-                return this.createTrackerObjectFromCache(type, id, cacheResult);
+                return this.createTrackerObject(type, id, cacheResult);
             }
 
             const roll20Result = getObj(type, id);
@@ -117,29 +147,50 @@ export const TokenStateApi = (() => {
 
             if (!this.blacklist.ids.has(id)) {
                 return this.createAndRecordTrackerObject(type, id);
+            } else {
+                return this.createTrackerObject(
+                    type,
+                    id,
+                    this.newEmptyTrackerObjectProps(type, id)
+                );
             }
         }
 
-        private createAndRecordTrackerObject(type: ObjectType, id: string) {
-            const trackerDetails = {
-                trackedEvents: new Map(),
-                trackedProps: new Map([
-                    ['type', type],
-                    ['id', id],
-                ]),
-            };
+        private createAndRecordTrackerObject(
+            type: ObjectType,
+            id: string
+        ): IStateTrackerObject {
+            const trackerProps = this.newEmptyTrackerObjectProps(type, id);
 
-            this.cache.set(id, trackerDetails);
+            this.cache.set(id, trackerProps);
 
-            return new StateTrackerObject(type, id, trackerDetails, this);
+            return this.createTrackerObject(type, id, trackerProps);
         }
 
-        private createTrackerObjectFromCache(
+        private createTrackerObject(
             type: ObjectType,
             id: string,
             props: IStateTrackerObjectProps
-        ) {
+        ): IStateTrackerObject {
             return new StateTrackerObject(type, id, props, this);
+        }
+
+        private keyFromSearchArgs(parameters: {
+            [parameter: string]: any;
+        }): string {
+            return Object.entries(parameters)
+                .map(([key, value]) => `${key}=${value}`)
+                .join('&');
+        }
+
+        private newEmptyTrackerObjectProps(type: ObjectType, id: string) {
+            return {
+                trackedEvents: new Map(),
+                trackedProps: new Map([
+                    ['_type', type],
+                    ['_id', id],
+                ]),
+            };
         }
     }
 

@@ -14,7 +14,7 @@ export function createRoll20Object(
             return (property: string) => {
                 const propertyValue = validProperties[property];
                 if (propertyValue === undefined) {
-                    throw new Error();
+                    throw new Error('property not defined');
                 }
                 return propertyValue;
             };
