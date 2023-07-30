@@ -34,6 +34,8 @@ export interface IStateTracker {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const TokenStateApi = (() => {
     class StateTrackerObject implements IStateTrackerObject {
+        private stateTrackerObject: IStateTracker;
+
         id;
         type;
         stateTracker;
@@ -41,7 +43,8 @@ export const TokenStateApi = (() => {
         constructor(
             type: ObjectType,
             id: string,
-            { trackedEvents, trackedProps }: IStateTrackerObjectProps
+            { trackedEvents, trackedProps }: IStateTrackerObjectProps,
+            stateTrackerObject: IStateTracker
         ) {
             this.type = type;
             this.id = id;
@@ -50,6 +53,8 @@ export const TokenStateApi = (() => {
                 trackedEvents,
                 trackedProps,
             };
+
+            this.stateTrackerObject = stateTrackerObject;
         }
 
         get(property: string): any {
@@ -61,7 +66,12 @@ export const TokenStateApi = (() => {
             const thisObjectFromRoll20 = getObj(this.type, this.id);
             const fetchedProperty = thisObjectFromRoll20?.get(property);
             if (fetchedProperty) {
-                this.stateTracker.trackedProps.set(property, fetchedProperty);
+                if (this.propertyIsCachable(property)) {
+                    this.stateTracker.trackedProps.set(
+                        property,
+                        fetchedProperty
+                    );
+                }
 
                 return fetchedProperty;
             }
@@ -71,6 +81,14 @@ export const TokenStateApi = (() => {
             const thisObjectFromRoll20 = getObj(this.type, this.id);
             const fetchedProperty = thisObjectFromRoll20?.get(property);
             return fetchedProperty;
+        }
+
+        private propertyIsCachable(property: string): boolean {
+            const blacklist = this.stateTrackerObject.blacklist;
+            return !(
+                blacklist.properties.has(property) ||
+                blacklist.details.get(this.id)?.has(property)
+            );
         }
 
         remove(): void {
@@ -86,7 +104,7 @@ export const TokenStateApi = (() => {
         };
         cache: IStateTracker['cache'] = new Map();
 
-        getObj(type: ObjectType, id: string) {
+        getObj(type: ObjectType, id: string): IStateTrackerObject | undefined {
             const cacheResult = this.cache.get(id);
             if (cacheResult) {
                 return this.createTrackerObjectFromCache(type, id, cacheResult);
@@ -97,7 +115,9 @@ export const TokenStateApi = (() => {
                 return;
             }
 
-            return this.createAndRecordTrackerObject(type, id);
+            if (!this.blacklist.ids.has(id)) {
+                return this.createAndRecordTrackerObject(type, id);
+            }
         }
 
         private createAndRecordTrackerObject(type: ObjectType, id: string) {
@@ -111,7 +131,7 @@ export const TokenStateApi = (() => {
 
             this.cache.set(id, trackerDetails);
 
-            return new StateTrackerObject(type, id, trackerDetails);
+            return new StateTrackerObject(type, id, trackerDetails, this);
         }
 
         private createTrackerObjectFromCache(
@@ -119,7 +139,7 @@ export const TokenStateApi = (() => {
             id: string,
             props: IStateTrackerObjectProps
         ) {
-            return new StateTrackerObject(type, id, props);
+            return new StateTrackerObject(type, id, props, this);
         }
     }
 

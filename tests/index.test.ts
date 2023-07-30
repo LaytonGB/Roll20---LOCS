@@ -6,6 +6,11 @@ import mockFunctions from './mocks/functions';
 
 import { IStateTracker, TokenStateApi } from '../src';
 
+// @ts-ignore not assignable error because of roll20 types
+global.getObj = () => {
+    return;
+};
+
 const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(
     mockFunctions.getObj
 );
@@ -25,8 +30,8 @@ describe('state constructor', () => {
     });
 });
 
-describe.only('object fetching', () => {
-    const getArgsType = 'graphic';
+describe('object fetching', () => {
+    const getArgsType = 'player';
     const getArgsId = MockObjectName.MOCK_PLAYER;
     const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
@@ -49,7 +54,7 @@ describe.only('object fetching', () => {
     });
 });
 
-describe('object and property caching', () => {
+describe.only('object and property caching', () => {
     const getArgsType = 'graphic';
     const getArgsId = MockObjectName.MOCK_GRAPHIC;
     const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
@@ -66,9 +71,9 @@ describe('object and property caching', () => {
         expect(stateTracker.cache.has(getArgsId)).toBe(true);
     });
 
-    it('returns objects that replace usual methods to track fetched properties', () => {
+    it('caches fetched object properties', () => {
         const stateTrackerResult = stateTracker.getObj(...getArgs);
-        typeof stateTrackerResult?.get('top');
+        stateTrackerResult?.get('top');
 
         expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
             true
@@ -139,7 +144,7 @@ describe('object and property caching', () => {
 
     it('allows users to stop a specific objects property from being cached', () => {
         const stateTrackerResult = stateTracker.getObj(...getArgs);
-        stateTracker.blacklist.details.set(getArgsId, new Set('top'));
+        stateTracker.blacklist.details.set(getArgsId, new Set(['top']));
         stateTrackerResult?.get('top');
 
         expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
