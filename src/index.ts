@@ -22,7 +22,7 @@ export interface IStateTracker {
         properties: Set<string>;
     };
     cache: Map<Roll20Id, IStateTrackerObjectProps>;
-    trackedEvents: Map<string, (eventDetails: any) => void>;
+    trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
     trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
 
     findObjs: (properties: {
@@ -104,7 +104,10 @@ export const TokenStateApi = (() => {
             properties: new Set<string>(),
         };
         cache = new Map<Roll20Id, IStateTrackerObjectProps>();
-        trackedEvents = new Map<string, (eventDetails: any) => void>();
+        trackedEvents = new Map<
+            string,
+            Map<string, (eventDetails: any) => void>
+        >();
         trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
         findObjs(properties: {
@@ -120,8 +123,18 @@ export const TokenStateApi = (() => {
 
             const roll20Result = findObjs(properties);
             const newCacheValue: [ObjectType, Roll20Id][] = [];
-            if (roll20Result.length > 0 && properties._type) {
+            if (properties._type) {
                 this.trackedSearches.set(cacheKey, newCacheValue);
+
+                const trackedEvents = this.trackedEvents.get(cacheKey);
+                if (!trackedEvents) {
+                    this.trackedEvents.set(cacheKey, new Map());
+                }
+
+                this.trackedEvents.set(
+                    `add:${properties._type}`,
+                    (obj: Roll20Object) => {}
+                );
             }
             return roll20Result.map((roll20Obj) => {
                 const type = roll20Obj.get('_type');
