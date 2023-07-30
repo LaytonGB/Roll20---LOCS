@@ -206,7 +206,7 @@ describe.only('object finding and filtering', () => {
         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
         expect(
             stateTracker.trackedSearches.get(objSearchParamsKey)?.length
-        ).toBe(1);
+        ).toBe(2);
         expect(foundObjs).toStrictEqual(
             stateTracker.trackedSearches.get(objSearchParamsKey)
         );

@@ -1,9 +1,4 @@
-type CharacterProperties =
-    | keyof CharacterImmutableSynchronousGetProperties
-    | keyof CharacterMutableSynchronousGetProperties;
-type GraphicProperties =
-    | keyof GraphicImmutableSynchronousGetProperties
-    | keyof GraphicMutableSynchronousGetProperties;
+type Roll20Id = string;
 
 export interface IStateTrackerFactory {
     createStateTracker: () => /* IStateTracker */ object;
@@ -22,18 +17,18 @@ export interface IStateTrackerObject extends Roll20Object {
 // this matches the property and method signatures of the StateTracker class
 export interface IStateTracker {
     blacklist: {
-        details: Map<string, Set<string>>;
-        ids: Set<string>;
+        details: Map<Roll20Id, Set<string>>;
+        ids: Set<Roll20Id>;
         properties: Set<string>;
     };
-    cache: Map<string, IStateTrackerObjectProps>;
-    trackedSearches: Map<string, [ObjectType, string][]>;
+    cache: Map<Roll20Id, IStateTrackerObjectProps>;
+    trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
 
     findObjs: (properties: {
         [property: string]: any;
     }) => IStateTrackerObject[];
 
-    getObj: (type: ObjectType, id: string) => IStateTrackerObject | undefined;
+    getObj: (type: ObjectType, id: Roll20Id) => IStateTrackerObject | undefined;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -47,7 +42,7 @@ export const TokenStateApi = (() => {
 
         constructor(
             type: ObjectType,
-            id: string,
+            id: Roll20Id,
             { trackedEvents, trackedProps }: IStateTrackerObjectProps,
             stateTrackerObject: IStateTracker
         ) {
@@ -103,12 +98,12 @@ export const TokenStateApi = (() => {
 
     class StateTracker implements IStateTracker {
         blacklist = {
-            details: new Map<string, Set<string>>(),
-            ids: new Set<string>(),
+            details: new Map<Roll20Id, Set<string>>(),
+            ids: new Set<Roll20Id>(),
             properties: new Set<string>(),
         };
-        cache = new Map<string, IStateTrackerObjectProps>();
-        trackedSearches = new Map<string, [ObjectType, string][]>();
+        cache = new Map<Roll20Id, IStateTrackerObjectProps>();
+        trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
         findObjs(properties: {
             [property: string]: any;
@@ -122,19 +117,27 @@ export const TokenStateApi = (() => {
             }
 
             const roll20Result = findObjs(properties);
+            const newCacheValue: [ObjectType, Roll20Id][] = [];
+            if (roll20Result.length > 0) {
+                this.trackedSearches.set(cacheKey, newCacheValue);
+            }
             return roll20Result.map((roll20Obj) => {
                 const type = roll20Obj.get('_type');
                 const id = roll20Obj.id;
-                const cacheResult = this.cache.get(id);
-                return this.createTrackerObject(
-                    type,
-                    id,
-                    cacheResult || this.newEmptyTrackerObjectProps(type, id)
-                );
+                const objectProps =
+                    this.cache.get(id) ||
+                    this.newEmptyTrackerObjectProps(type, id);
+
+                newCacheValue.push([type, id]);
+
+                return this.createTrackerObject(type, id, objectProps);
             });
         }
 
-        getObj(type: ObjectType, id: string): IStateTrackerObject | undefined {
+        getObj(
+            type: ObjectType,
+            id: Roll20Id
+        ): IStateTrackerObject | undefined {
             const cacheResult = this.cache.get(id);
             if (cacheResult) {
                 return this.createTrackerObject(type, id, cacheResult);
@@ -158,7 +161,7 @@ export const TokenStateApi = (() => {
 
         private createAndRecordTrackerObject(
             type: ObjectType,
-            id: string
+            id: Roll20Id
         ): IStateTrackerObject {
             const trackerProps = this.newEmptyTrackerObjectProps(type, id);
 
@@ -169,7 +172,7 @@ export const TokenStateApi = (() => {
 
         private createTrackerObject(
             type: ObjectType,
-            id: string,
+            id: Roll20Id,
             props: IStateTrackerObjectProps
         ): IStateTrackerObject {
             return new StateTrackerObject(type, id, props, this);
@@ -183,7 +186,7 @@ export const TokenStateApi = (() => {
                 .join('&');
         }
 
-        private newEmptyTrackerObjectProps(type: ObjectType, id: string) {
+        private newEmptyTrackerObjectProps(type: ObjectType, id: Roll20Id) {
             return {
                 trackedEvents: new Map(),
                 trackedProps: new Map([
