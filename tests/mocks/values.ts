@@ -1,8 +1,8 @@
 import { createRoll20Object } from '../utils/roll20';
 
 const mockObjectConstants = {
-    mockGraphicTop: 30,
-    mockGraphicLeft: 100,
+  mockGraphicTop: 30,
+  mockGraphicLeft: 100,
 };
 
 export enum MockObjectName {
@@ -20,56 +20,56 @@ const mockObjectParams: {
     id: string;
     properties?: { [property: string]: any };
 }[] = [
-    {
-        type: 'attribute',
-        id: MockObjectName.MOCK_ATTRIBUTE,
-        properties: {
-            _characterid: MockObjectName.MOCK_CHARACTER,
-            current: 10,
-            max: 20,
-        },
+  {
+    type: 'attribute',
+    id: MockObjectName.MOCK_ATTRIBUTE,
+    properties: {
+      _characterid: MockObjectName.MOCK_CHARACTER,
+      current: 10,
+      max: 20,
     },
-    { type: 'character', id: MockObjectName.CREATED_CHARACTER },
-    { type: 'character', id: MockObjectName.MOCK_CHARACTER },
-    {
-        type: 'graphic',
-        id: MockObjectName.CREATED_GRAPHIC,
-        properties: {
-            top: mockObjectConstants.mockGraphicTop,
-            left: mockObjectConstants.mockGraphicLeft,
-        },
+  },
+  { type: 'character', id: MockObjectName.CREATED_CHARACTER },
+  { type: 'character', id: MockObjectName.MOCK_CHARACTER },
+  {
+    type: 'graphic',
+    id: MockObjectName.CREATED_GRAPHIC,
+    properties: {
+      top: mockObjectConstants.mockGraphicTop,
+      left: mockObjectConstants.mockGraphicLeft,
     },
-    {
-        type: 'graphic',
-        id: MockObjectName.MOCK_GRAPHIC,
-        properties: {
-            top: mockObjectConstants.mockGraphicTop,
-            left: mockObjectConstants.mockGraphicLeft,
-        },
+  },
+  {
+    type: 'graphic',
+    id: MockObjectName.MOCK_GRAPHIC,
+    properties: {
+      top: mockObjectConstants.mockGraphicTop,
+      left: mockObjectConstants.mockGraphicLeft,
     },
-    { type: 'page', id: MockObjectName.MOCK_PAGE },
-    { type: 'player', id: MockObjectName.MOCK_PLAYER },
+  },
+  { type: 'page', id: MockObjectName.MOCK_PAGE },
+  { type: 'player', id: MockObjectName.MOCK_PLAYER },
 ];
 
 const mockRequestResults: Map<string, Roll20Object> = mockObjectParams.reduce(
-    (map: Map<string, Roll20Object>, { type, id, properties }) => {
-        map.set(id, createRoll20Object(type, id, properties));
-        return map;
-    },
-    new Map<string, Roll20Object>()
+  (map: Map<string, Roll20Object>, { type, id, properties }) => {
+    map.set(id, createRoll20Object(type, id, properties));
+    return map;
+  },
+  new Map<string, Roll20Object>()
 );
 
 const mockRequestArgs = {
-    ids: [...mockRequestResults.keys()],
-    trackerConfig: {
-        trackedAttributes: ['hp'],
-        trackedCharacterProperties: ['name'],
-        trackedGraphicProperties: ['top', 'left'],
-    },
+  ids: [...mockRequestResults.keys()],
+  trackerConfig: {
+    trackedAttributes: ['hp'],
+    trackedCharacterProperties: ['name'],
+    trackedGraphicProperties: ['top', 'left'],
+  },
 };
 
 export default {
-    mockObjectConstants,
-    mockRequestArgs,
-    mockRequestResults,
+  mockObjectConstants,
+  mockRequestArgs,
+  mockRequestResults,
 };

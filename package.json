@@ -4,7 +4,9 @@
   "description": "An API for Roll20.net to enable the automatic caching of tokens, their positions, and specific token attributes.",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint ./**/*.ts",
+    "lint:fix": "eslint ./**/*.ts --fix"
   },
   "repository": {
     "type": "git",
