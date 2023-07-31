@@ -4,7 +4,13 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import { IStateTracker, TokenStateApi } from '../src';
+import {
+    IStateTracker,
+    IStateTrackerObject,
+    Roll20EventLabel,
+    TokenStateApi,
+} from '../src';
+import { createRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
 global.getObj = () => {
@@ -13,7 +19,7 @@ global.getObj = () => {
 const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(
     mockFunctions.getObj
 );
-jest.spyOn(global, 'getObj').mockImplementation(getObjMock);
+const getObjSpy = jest.spyOn(global, 'getObj').mockImplementation(getObjMock);
 
 // @ts-ignore
 global.findObjs = () => {
@@ -22,7 +28,20 @@ global.findObjs = () => {
 const findObjsMock = jest.fn<Roll20Object[], [{ [property: string]: any }]>(
     mockFunctions.findObjs
 );
-jest.spyOn(global, 'findObjs').mockImplementation(findObjsMock);
+const findObjsSpy = jest
+    .spyOn(global, 'findObjs')
+    .mockImplementation(findObjsMock);
+
+const { triggerEvent, on } = mockFunctions.getOnFunctions();
+// @ts-ignore
+global.on = () => {
+    return;
+};
+const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
+    on
+);
+// @ts-ignore On overload causing bad-selection error
+const onSpy = jest.spyOn(global, 'on').mockImplementation(onMock);
 
 describe('state constructor', () => {
     it('can be created with no input', () => {
@@ -162,25 +181,45 @@ describe('object and property caching', () => {
             false
         );
     });
+
+    describe('maintains and removes cached values using events', () => {
+        beforeEach(() => {
+            stateTracker = TokenStateApi.createStateTracker();
+        });
+
+        it.todo('updates values on change');
+
+        it.todo('removes cache entries on destroy');
+    });
 });
 
 describe.only('object finding and filtering', () => {
-    const objSearchParams = {
-        _type: 'graphic',
-        top: mockValues.mockObjectConstants.mockGraphicTop,
-    };
+    function paramsIntoKey(params: { [param: string]: any }) {
+        return Object.entries(params)
+            .reduce(
+                (str, [parameter, searchValue]) =>
+                    str + `&${parameter}=${searchValue}`,
+                ''
+            )
+            .slice(1);
+    }
+
     const objSearchResultIds = [
         MockObjectName.CREATED_GRAPHIC,
         MockObjectName.MOCK_GRAPHIC,
     ];
 
-    const objSearchParamsKey = Object.entries(objSearchParams)
-        .reduce(
-            (str, [parameter, searchValue]) =>
-                str + `&${parameter}=${searchValue}`,
-            ''
-        )
-        .slice(1);
+    const objSearchParams = {
+        _type: 'graphic',
+        top: mockValues.mockObjectConstants.mockGraphicTop,
+    };
+    const objSearchParamsKey = paramsIntoKey(objSearchParams);
+
+    const noResultsSearchParams = {
+        _type: 'page',
+        top: mockValues.mockObjectConstants.mockGraphicTop,
+    };
+    const noResultsSearchParamsKey = paramsIntoKey(noResultsSearchParams);
 
     let stateTracker: IStateTracker;
     beforeEach(() => {
@@ -209,9 +248,22 @@ describe.only('object finding and filtering', () => {
         ).toBe(2);
     });
 
-    // TODO add caching for searches with no type.
-    // Parts:
-    // - add an event for every change type (test if needed)
+    it('caches even when no results are found', () => {
+        expect(stateTracker.trackedSearches.has(noResultsSearchParamsKey)).toBe(
+            false
+        );
+
+        stateTracker.findObjs(noResultsSearchParams);
+
+        expect(stateTracker.trackedSearches.has(noResultsSearchParamsKey)).toBe(
+            true
+        );
+        expect(
+            stateTracker.trackedSearches.get(noResultsSearchParamsKey)?.length
+        ).toBe(0);
+    });
+
+    // TODO add caching for searches with no type
     it('caches nothing if type is excluded', () => {
         expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
             false
@@ -224,33 +276,42 @@ describe.only('object finding and filtering', () => {
         );
     });
 
-    // TODO requires an event manager system which i havent planned yet
-    it.skip('tracks updates to maintain find results', () => {
-        expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
-        expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
-        expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
-            false
-        );
+    describe('tracks updates to maintain find results', () => {
+        const eventGraphicId = 'on_graphic';
 
-        stateTracker.findObjs(objSearchParams);
+        let findObjsResults: IStateTrackerObject[];
+        beforeEach(() => {
+            stateTracker = TokenStateApi.createStateTracker();
+            findObjsResults = stateTracker.findObjs(objSearchParams);
+        });
 
-        // TODO add test to check that events perform correct actions (add update and teardown)
-        const { _type, top } = objSearchParams;
-        expect(
-            stateTracker.trackedEvents
-                .get(objSearchParamsKey)
-                ?.has(`add:${_type}`)
-        ).toBe(true);
-        expect(
-            stateTracker.trackedEvents
-                .get(objSearchParamsKey)
-                ?.has(`change:${_type}:${top}`)
-        ).toBe(true);
-        expect(
-            stateTracker.trackedEvents
-                .get(objSearchParamsKey)
-                ?.has(`destroy:${_type}`)
-        ).toBe(true);
+        it('adds new results to cache when matching object created', () => {
+            const objsFoundCount = findObjsResults.length;
+            const findObjsCallsAtTestStart = findObjsSpy.mock.calls.length;
+
+            triggerEvent(
+                'add:graphic',
+                createRoll20Object('graphic', eventGraphicId, {
+                    top: mockValues.mockObjectConstants.mockGraphicTop,
+                })
+            );
+
+            const newFindResults = stateTracker.findObjs(objSearchParams);
+
+            expect(newFindResults.length).toBe(objsFoundCount + 1);
+            expect(newFindResults.map((x) => x.id)).toContain(eventGraphicId);
+            expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallsAtTestStart);
+        });
+
+        it.skip('removes entries from cache when matching object destroyed', () => {
+            const findObjsCallsAtTestStart = findObjsSpy.mock.calls.length;
+
+            const foundObject = findObjsResults[0];
+            triggerEvent(
+                'destroy:graphic',
+                createRoll20Object(foundObject.get('_type'), foundObject.id)
+            );
+        });
     });
 
     // it('allows cache removal', () => {

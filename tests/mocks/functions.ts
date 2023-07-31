@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { Roll20EventLabel } from '../../src';
 import mockValues from './values';
 
 function createObj(
@@ -79,10 +80,38 @@ function getObj(type: ObjectType, id: string): Roll20Object | undefined {
     return mockResult;
 }
 
+function getOnFunctions() {
+    const events: Map<Roll20EventLabel, ((obj: Roll20Object) => void)[]> =
+        new Map();
+
+    return {
+        triggerEvent: (
+            eventLabel: Roll20EventLabel,
+            obj: Roll20Object
+        ): void => {
+            events.get(eventLabel)?.forEach((callback) => callback(obj));
+        },
+
+        on: (
+            eventLabel: Roll20EventLabel,
+            callback: (obj: Roll20Object) => void
+        ): void => {
+            let callbackArray = events.get(eventLabel);
+            if (!callbackArray) {
+                callbackArray = [];
+                events.set(eventLabel, callbackArray);
+            }
+
+            callbackArray.push(callback);
+        },
+    };
+}
+
 export default {
     createObj,
     filterObjs,
     findObjs,
     getAttrByName,
     getObj,
+    getOnFunctions,
 };

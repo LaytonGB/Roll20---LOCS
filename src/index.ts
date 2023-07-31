@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 type Roll20Id = string;
-type Roll20EventLabel =
+export type Roll20EventLabel =
     | 'add:attribute'
     | 'add:character'
     | 'add:graphic'
@@ -118,7 +118,7 @@ export const TokenStateApi = (() => {
             this.label = roll20EventLabel;
 
             // @ts-ignore Does not correctly identify `on` overloads
-            on(roll20EventLabel, this.fire);
+            on(roll20EventLabel, this.fire.bind(this));
         }
 
         fire(obj: Roll20Object): void {
@@ -182,6 +182,7 @@ export const TokenStateApi = (() => {
                     this.trackedEvents.set(cacheKey, eventsForThisSearch);
                 }
 
+                // TODO this is all possibly broke now, pretty sure
                 eventsForThisSearch.set(
                     `add:${properties._type}`,
                     (obj: Roll20Object) => {
@@ -197,7 +198,6 @@ export const TokenStateApi = (() => {
                         newCacheValue.push([obj.get('_type'), obj.id]);
                     }
                 );
-
                 eventsForThisSearch.set(
                     `change:${properties._type}`,
                     (obj: Roll20Object) => {
@@ -220,7 +220,6 @@ export const TokenStateApi = (() => {
                         }
                     }
                 );
-
                 eventsForThisSearch.set(
                     `destroy:${properties._type}`,
                     (obj: Roll20Object) => {
