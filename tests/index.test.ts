@@ -301,14 +301,25 @@ describe.only('object finding and filtering', () => {
       expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallsAtTestStart);
     });
 
-    it.skip('removes entries from cache when matching object destroyed', () => {
+    it('removes entries from cache when matching object destroyed', () => {
+      const objsFoundCount = findObjsResults.length;
       const findObjsCallsAtTestStart = findObjsSpy.mock.calls.length;
+      const idToBeRemoved = findObjsResults[0].id;
 
-      const foundObject = findObjsResults[0];
       triggerEvent(
         'destroy:graphic',
-        createRoll20Object(foundObject.get('_type'), foundObject.id)
+        createRoll20Object('graphic', idToBeRemoved, {
+          top: mockValues.mockObjectConstants.mockGraphicTop,
+        })
       );
+
+      const newSearchCacheIds = stateTracker.trackedSearches
+        .get(objSearchParamsKey)
+        ?.map((x) => x[1]);
+
+      expect(newSearchCacheIds?.length).toBe(objsFoundCount - 1);
+      expect(newSearchCacheIds).not.toContain(idToBeRemoved);
+      expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallsAtTestStart);
     });
   });
 
