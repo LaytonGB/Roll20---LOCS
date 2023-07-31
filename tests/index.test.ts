@@ -106,9 +106,14 @@ describe('object and property caching', () => {
     expect(stateTracker.cache.get(getArgsId)?.trackedProps?.has('top')).toBe(
       true
     );
+
+    const getObjCallCount = getObjSpy.mock.calls.length;
+    stateTrackerResult?.get('top');
+
+    expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount);
   });
 
-  it('allows users to get properties without caching', () => {
+  it('gets properties that do not yet have caching', () => {
     const stateTrackerResult = stateTracker.getObj(...getArgs);
     stateTrackerResult?.getWithoutCaching('top');
 
@@ -117,14 +122,14 @@ describe('object and property caching', () => {
     );
   });
 
-  it('allows users to remove object caching', () => {
+  it('can remove object caching', () => {
     stateTracker.getObj(...getArgs);
     stateTracker.cache.delete(getArgsId);
 
     expect(stateTracker.cache.has(getArgsId)).toBe(false);
   });
 
-  it('allows users to remove property caching using the related object', () => {
+  it('can remove property caching using the related object', () => {
     const stateTrackerResult = stateTracker.getObj(...getArgs);
     stateTrackerResult?.get('top');
     stateTrackerResult?.stateTracker.trackedProps.delete('top');
@@ -137,7 +142,7 @@ describe('object and property caching', () => {
     );
   });
 
-  it('allows users to remove property caching using the stateTracker object', () => {
+  it('can remove property caching using the stateTracker object', () => {
     const stateTrackerResult = stateTracker.getObj(...getArgs);
     stateTrackerResult?.get('top');
     stateTracker.cache.get(getArgsId)?.trackedProps.delete('top');
@@ -150,7 +155,7 @@ describe('object and property caching', () => {
     );
   });
 
-  it('allows users to stop an object from being cached', () => {
+  it('can stop an object from being cached', () => {
     stateTracker.blacklist.ids.add(getArgsId);
     const stateTrackerResult = stateTracker.getObj(...getArgs);
 
@@ -158,7 +163,7 @@ describe('object and property caching', () => {
     expect(stateTracker.cache.has(getArgsId)).toBe(false);
   });
 
-  it('allows users to stop a property from being cached', () => {
+  it('can stop a property from being cached', () => {
     const stateTrackerResult = stateTracker.getObj(...getArgs);
     stateTracker.blacklist.properties.add('top');
     stateTrackerResult?.get('top');
@@ -169,7 +174,7 @@ describe('object and property caching', () => {
     );
   });
 
-  it('allows users to stop a specific objects property from being cached', () => {
+  it('can stop a specific objects property from being cached', () => {
     stateTracker.blacklist.details.set(getArgsId, new Set(['top']));
     const stateTrackerResult = stateTracker.getObj(...getArgs);
     stateTrackerResult?.get('top');
