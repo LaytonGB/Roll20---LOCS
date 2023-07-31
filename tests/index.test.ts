@@ -296,10 +296,12 @@ describe.only('object finding and filtering', () => {
                 })
             );
 
-            const newFindResults = stateTracker.findObjs(objSearchParams);
+            const newSearchCacheIds = stateTracker.trackedSearches
+                .get(objSearchParamsKey)
+                ?.map((x) => x[1]);
 
-            expect(newFindResults.length).toBe(objsFoundCount + 1);
-            expect(newFindResults.map((x) => x.id)).toContain(eventGraphicId);
+            expect(newSearchCacheIds?.length).toBe(objsFoundCount + 1);
+            expect(newSearchCacheIds).toContain(eventGraphicId);
             expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallsAtTestStart);
         });
 

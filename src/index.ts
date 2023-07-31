@@ -156,7 +156,7 @@ export const TokenStateApi = (() => {
         cache = new Map<Roll20Id, IStateTrackerObjectProps>();
         trackedEvents = new Map<
             string,
-            Map<string, (eventDetails: any) => void>
+            Map<Roll20EventLabel, (eventDetails: any) => void>
         >();
         trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
@@ -184,9 +184,11 @@ export const TokenStateApi = (() => {
 
                 // TODO this is all possibly broke now, pretty sure
                 eventsForThisSearch.set(
-                    `add:${properties._type}`,
+                    `add:${properties._type}` as Roll20EventLabel,
                     (obj: Roll20Object) => {
-                        for (const [property, value] of properties.entries()) {
+                        for (const [property, value] of Object.entries(
+                            properties
+                        )) {
                             if (property === '_type') {
                                 continue;
                             }
@@ -198,8 +200,9 @@ export const TokenStateApi = (() => {
                         newCacheValue.push([obj.get('_type'), obj.id]);
                     }
                 );
+
                 eventsForThisSearch.set(
-                    `change:${properties._type}`,
+                    `change:${properties._type}` as Roll20EventLabel,
                     (obj: Roll20Object) => {
                         const foundObjectIndex = newCacheValue.findIndex(
                             ([, id]) => id === obj.id
@@ -208,7 +211,9 @@ export const TokenStateApi = (() => {
                             return;
                         }
 
-                        for (const [property, value] of properties.entries()) {
+                        for (const [property, value] of Object.entries(
+                            properties
+                        )) {
                             if (property === '_type') {
                                 continue;
                             }
@@ -220,8 +225,9 @@ export const TokenStateApi = (() => {
                         }
                     }
                 );
+
                 eventsForThisSearch.set(
-                    `destroy:${properties._type}`,
+                    `destroy:${properties._type}` as Roll20EventLabel,
                     (obj: Roll20Object) => {
                         const foundObjectIndex = newCacheValue.findIndex(
                             ([, id]) => id === obj.id
@@ -237,7 +243,15 @@ export const TokenStateApi = (() => {
                         }
                     }
                 );
+
+                for (const [
+                    eventLabel,
+                    callback,
+                ] of eventsForThisSearch.entries()) {
+                    this.events.get(eventLabel)?.subscribe(callback);
+                }
             }
+
             return roll20Result.map((roll20Obj) => {
                 const type = roll20Obj.get('_type');
                 const id = roll20Obj.id;
