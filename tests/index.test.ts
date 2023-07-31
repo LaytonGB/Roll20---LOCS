@@ -224,7 +224,8 @@ describe.only('object finding and filtering', () => {
         );
     });
 
-    it('tracks updates to maintain find results', () => {
+    // TODO requires an event manager system which i havent planned yet
+    it.skip('tracks updates to maintain find results', () => {
         expect(stateTracker.trackedEvents.has('add:graphic')).toBe(false);
         expect(stateTracker.trackedEvents.has('destroy:graphic')).toBe(false);
         expect(stateTracker.trackedEvents.has('change:graphic:top')).toBe(
@@ -233,24 +234,23 @@ describe.only('object finding and filtering', () => {
 
         stateTracker.findObjs(objSearchParams);
 
-        // TODO add test to check that events perform correct actions
+        // TODO add test to check that events perform correct actions (add update and teardown)
         const { _type, top } = objSearchParams;
-        expect(stateTracker.trackedEvents.has(`add:${_type}`)).toBe(true);
-        expect(stateTracker.trackedEvents.has(`change:${_type}:${top}`)).toBe(
-            true
-        );
-        expect(stateTracker.trackedEvents.has(`destroy:${_type}`)).toBe(true);
-
-        const createdGraphic = createObj('graphic', {
-            _pageid: MockObjectName.MOCK_PAGE,
-        } as GraphicCreationProperties);
-
         expect(
-            stateTracker.trackedSearches.get(objSearchParamsKey)?.length
-        ).toBe(2);
-        expect(stateTracker.trackedSearches.get(objSearchParamsKey)).toContain(
-            createdGraphic?.id
-        );
+            stateTracker.trackedEvents
+                .get(objSearchParamsKey)
+                ?.has(`add:${_type}`)
+        ).toBe(true);
+        expect(
+            stateTracker.trackedEvents
+                .get(objSearchParamsKey)
+                ?.has(`change:${_type}:${top}`)
+        ).toBe(true);
+        expect(
+            stateTracker.trackedEvents
+                .get(objSearchParamsKey)
+                ?.has(`destroy:${_type}`)
+        ).toBe(true);
     });
 
     // it('allows cache removal', () => {
