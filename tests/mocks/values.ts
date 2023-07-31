@@ -6,19 +6,19 @@ const mockObjectConstants = {
 };
 
 export enum MockObjectName {
-    CREATED_CHARACTER = 'created_character',
-    CREATED_GRAPHIC = 'created_graphic',
-    MOCK_ATTRIBUTE = 'mock_attribute',
-    MOCK_CHARACTER = 'mock_character',
-    MOCK_GRAPHIC = 'mock_graphic',
-    MOCK_PAGE = 'mock_page',
-    MOCK_PLAYER = 'mock_player',
+  CREATED_CHARACTER = 'created_character',
+  CREATED_GRAPHIC = 'created_graphic',
+  MOCK_ATTRIBUTE = 'mock_attribute',
+  MOCK_CHARACTER = 'mock_character',
+  MOCK_GRAPHIC = 'mock_graphic',
+  MOCK_PAGE = 'mock_page',
+  MOCK_PLAYER = 'mock_player',
 }
 
 const mockObjectParams: {
-    type: ObjectType;
-    id: string;
-    properties?: { [property: string]: any };
+  type: ObjectType;
+  id: string;
+  properties?: { [property: string]: any };
 }[] = [
   {
     type: 'attribute',
