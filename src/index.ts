@@ -17,7 +17,7 @@ export interface IStateTrackerFactory {
 }
 
 export interface IStateTrackerObjectProps {
-  trackedEvents: Map<string, (() => void)[]>;
+  trackedEvents: Map<Roll20EventLabel, (() => void)[]>;
   trackedProps: Map<string, any>;
 }
 
@@ -105,16 +105,20 @@ export const TokenStateApi = (() => {
       return fetchedProperty;
     }
 
+    remove(): void {
+      getObj(this.type, this.id)?.remove();
+    }
+
+    set(property: string, newValue: any): void {
+      getObj(this.type, this.id)?.set(property, newValue);
+    }
+
     private propertyIsCachable(property: string): boolean {
       const blacklist = this.stateTrackerObject.blacklist;
       return !(
         blacklist.properties.has(property) ||
         blacklist.details.get(this.id)?.has(property)
       );
-    }
-
-    remove(): void {
-      getObj(this.type, this.id)?.remove();
     }
   }
 

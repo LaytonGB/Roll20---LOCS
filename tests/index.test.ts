@@ -10,7 +10,7 @@ import {
   Roll20EventLabel,
   TokenStateApi,
 } from '../src';
-import { newRoll20Object } from './utils/roll20';
+import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
 global.getObj = () => {
@@ -78,6 +78,22 @@ describe('object fetching', () => {
     const stateTrackerResult = stateTracker.getObj(...getArgs);
 
     expect(stateTrackerResult?.stateTracker).toBeDefined();
+  });
+});
+
+describe('object modifying', () => {
+  it('fetched objects can have their properties set', () => {
+    const stateTracker = TokenStateApi.createStateTracker();
+
+    const getArgsType = 'graphic';
+    const getArgsId = MockObjectName.MOCK_GRAPHIC;
+    const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
+
+    const stateTrackerResult = stateTracker.getObj(...getArgs);
+    stateTrackerResult?.set('top', 15);
+
+    expect(stateTrackerResult?.get('top')).toBe(15);
+    expect(getObj(...getArgs)?.get('top')).toBe(15);
   });
 });
 
@@ -185,12 +201,19 @@ describe('object and property caching', () => {
     );
   });
 
-  describe('maintains and removes cached values using events', () => {
+  describe('events', () => {
     beforeEach(() => {
       stateTracker = TokenStateApi.createStateTracker();
     });
 
-    it.todo('updates values on change');
+    it.skip('updates cached values on change', () => {
+      const stateTrackerResult = stateTracker.getObj(...getArgs);
+      stateTrackerResult?.set('top', 15);
+
+      expect(stateTracker.cache.get(getArgsId)?.trackedProps.get('top')).toBe(
+        15
+      );
+    });
 
     it.todo('removes cache entries on destroy');
   });
@@ -290,7 +313,7 @@ describe('object finding and filtering', () => {
 
       triggerEvent(
         'add:graphic',
-        newRoll20Object('graphic', eventGraphicId, {
+        new MockRoll20Object('graphic', eventGraphicId, {
           top: mockValues.mockObjectConstants.mockGraphicTop,
         })
       );
@@ -311,7 +334,7 @@ describe('object finding and filtering', () => {
 
       triggerEvent(
         'destroy:graphic',
-        newRoll20Object('graphic', idToBeRemoved, {
+        new MockRoll20Object('graphic', idToBeRemoved, {
           top: mockValues.mockObjectConstants.mockGraphicTop,
         })
       );
@@ -342,7 +365,7 @@ describe('object finding and filtering', () => {
   });
 });
 
-describe.skip('getAttrByName', () => {
+describe.skip('getAttrByName and getAttrObjByName', () => {
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
