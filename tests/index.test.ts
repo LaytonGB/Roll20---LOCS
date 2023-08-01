@@ -196,7 +196,7 @@ describe('object and property caching', () => {
   });
 });
 
-describe.only('object finding and filtering', () => {
+describe('object finding and filtering', () => {
   function paramsIntoKey(params: { [param: string]: any }) {
     return Object.entries(params)
       .reduce(
@@ -211,8 +211,9 @@ describe.only('object finding and filtering', () => {
     MockObjectName.MOCK_GRAPHIC,
   ];
 
+  const objSearchType = 'graphic';
   const objSearchParams = {
-    _type: 'graphic',
+    _type: objSearchType,
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
   const objSearchParamsKey = paramsIntoKey(objSearchParams);
@@ -247,6 +248,8 @@ describe.only('object finding and filtering', () => {
       2
     );
   });
+
+  it.todo('still returns items if type is excluded');
 
   it('caches even when no results are found', () => {
     expect(stateTracker.trackedSearches.has(noResultsSearchParamsKey)).toBe(
@@ -323,32 +326,41 @@ describe.only('object finding and filtering', () => {
     });
   });
 
-  // it('allows cache removal', () => {
-  //     stateTracker.findObjs(objSearchParams);
-  //     stateTracker.trackedSearches.remove(objSearchParams);
+  it('allows cache removal', () => {
+    stateTracker.findObjs(objSearchParams);
+    const trackedEventsForSearch =
+      stateTracker.trackedEvents.get(objSearchParamsKey);
 
-  //     expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(
-  //         false
-  //     );
-  // });
+    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
+    expect(trackedEventsForSearch?.has(`add:${objSearchType}`)).toBe(true);
+    expect(trackedEventsForSearch?.has(`change:${objSearchType}`)).toBe(true);
+    expect(trackedEventsForSearch?.has(`destroy:${objSearchType}`)).toBe(true);
+
+    stateTracker.removeTrackedSearch(objSearchParams);
+
+    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
+    expect(trackedEventsForSearch?.has(`add:${objSearchType}`)).toBe(false);
+    expect(trackedEventsForSearch?.has(`change:${objSearchType}`)).toBe(false);
+    expect(trackedEventsForSearch?.has(`destroy:${objSearchType}`)).toBe(false);
+  });
 });
 
-// describe('getAttrByName', () => {
-//     const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
-//     const getAttrArgs = [getAttrCharacterId, 'hp'];
+describe.skip('getAttrByName', () => {
+  const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
+  const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
-//     let stateTracker: IStateTracker;
-//     beforeEach(() => {
-//         stateTracker = TokenStateApi.createStateTracker();
-//     });
+  let stateTracker: IStateTracker;
+  beforeEach(() => {
+    stateTracker = TokenStateApi.createStateTracker();
+  });
 
-//     // TODO review
-//     it('caches each search', () => {
-//         stateTracker.getAttrByName(...getAttrArgs);
+  // TODO review
+  it('caches each search', () => {
+    stateTracker.getAttrObjByName(...getAttrArgs);
 
-//         expect(stateTracker.trackedEvents.has('destroy:character')).toBe(true);
-//         expect(stateTracker.trackedAttributesFor(getAttrCharacterId)).toContain(
-//             'hp'
-//         );
-//     });
-// });
+    expect(stateTracker.trackedEvents.has('destroy:character')).toBe(true);
+    expect(
+      stateTracker.trackedAttributesForCharacter.get(getAttrCharacterId)
+    ).toContain('hp');
+  });
+});

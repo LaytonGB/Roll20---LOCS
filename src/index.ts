@@ -34,12 +34,26 @@ export interface IStateTracker {
     properties: Set<string>;
   };
   cache: Map<Roll20Id, IStateTrackerObjectProps>;
+  trackedAttributesForCharacter: Map<Roll20Id, Map<string, Roll20Id>>;
   trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
   trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
 
   findObjs: (properties: { [property: string]: any }) => IStateTrackerObject[];
 
+  getAttrByName: (
+    character_id: Roll20Id,
+    attribute_name: string,
+    value_type?: 'current' | 'max'
+  ) => string;
+
+  getAttrObjByName: (
+    character_id: Roll20Id,
+    attribute_name: string
+  ) => IStateTrackerObject | undefined;
+
   getObj: (type: ObjectType, id: Roll20Id) => IStateTrackerObject | undefined;
+
+  removeTrackedSearch: (properties: { [property: string]: any }) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -149,6 +163,8 @@ export const TokenStateApi = (() => {
       properties: new Set<string>(),
     };
     cache = new Map<Roll20Id, IStateTrackerObjectProps>();
+    trackedAttributesForCharacter: Map<Roll20Id, Map<string, Roll20Id>> =
+      new Map();
     trackedEvents = new Map<
       string,
       Map<Roll20EventLabel, (eventDetails: any) => void>
@@ -156,6 +172,149 @@ export const TokenStateApi = (() => {
     trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
     findObjs(properties: { [property: string]: any }): IStateTrackerObject[] {
+      return this.findObjsProcess(properties, true);
+    }
+
+    // TODO add check for cache item deletions
+    // TODO add check for duplicate result creation
+    // TODO add check for cache item rename
+    getAttrObjByName(
+      character_id: string,
+      attribute_name: string,
+      cacheAllAttributes = false
+    ): IStateTrackerObject | undefined {
+      let cachedCharacterAttributes =
+        this.trackedAttributesForCharacter.get(character_id);
+      if (!cachedCharacterAttributes) {
+        cachedCharacterAttributes = new Map();
+        this.trackedAttributesForCharacter.set(
+          character_id,
+          cachedCharacterAttributes
+        );
+      }
+
+      const cachedAttribute = cachedCharacterAttributes.get(attribute_name);
+      if (cachedAttribute) {
+        return this.getObj('attribute', cachedAttribute);
+      }
+
+      if (cacheAllAttributes) {
+        const searchArgs = { _type: 'attribute', _characterid: character_id };
+        const cachedFindResults = this.findObjsNoNewCacheEntry(searchArgs);
+        let targetAttribute;
+        cachedFindResults.forEach((attr) => {
+          const name = attr.get('name');
+          cachedCharacterAttributes?.set(name, attr.id);
+          if (name === attribute_name) {
+            targetAttribute = attr;
+          }
+        });
+        return targetAttribute;
+      } else {
+        const searchArgs = {
+          _type: 'attribute',
+          _characterid: character_id,
+          name: attribute_name,
+        };
+        const cachedFindResults = this.findObjsNoNewCacheEntry(searchArgs);
+        if (cachedFindResults.length > 0) {
+          return cachedFindResults[0];
+        }
+      }
+    }
+
+    getAttrByName(
+      character_id: string,
+      attribute_name: string,
+      value_type: 'current' | 'max' = 'current'
+    ): string {
+      let cachedCharacterAttributes =
+        this.trackedAttributesForCharacter.get(character_id);
+      if (!cachedCharacterAttributes) {
+        cachedCharacterAttributes = new Map();
+        this.trackedAttributesForCharacter.set(
+          character_id,
+          cachedCharacterAttributes
+        );
+      }
+
+      const cachedAttribute = cachedCharacterAttributes.get(attribute_name);
+      if (cachedAttribute) {
+        return this.getObj('attribute', cachedAttribute)?.get(value_type);
+      }
+
+      const searchArgs = { _type: 'attribute', _characterid: character_id };
+      const cachedFindResults = this.findObjsNoNewCacheEntry(searchArgs);
+      let targetAttribute = '';
+      cachedFindResults.forEach((attr) => {
+        const name = attr.get('name');
+        cachedCharacterAttributes?.set(name, attr.id);
+        if (name === attribute_name) {
+          targetAttribute = attr.get('name') || '';
+        }
+      });
+      return targetAttribute;
+    }
+
+    getObj(type: ObjectType, id: Roll20Id): IStateTrackerObject | undefined {
+      const cacheResult = this.cache.get(id);
+      if (cacheResult) {
+        return this.createTrackerObject(type, id, cacheResult);
+      }
+
+      const roll20Result = getObj(type, id);
+      if (!roll20Result) {
+        return;
+      }
+
+      if (!this.blacklist.ids.has(id)) {
+        return this.createAndRecordTrackerObject(type, id);
+      } else {
+        return this.createTrackerObject(
+          type,
+          id,
+          this.newEmptyTrackerObjectProps(type, id)
+        );
+      }
+    }
+
+    removeTrackedSearch(properties: { [property: string]: any }): void {
+      return;
+    }
+
+    private createAndRecordTrackerObject(
+      type: ObjectType,
+      id: Roll20Id
+    ): IStateTrackerObject {
+      const trackerProps = this.newEmptyTrackerObjectProps(type, id);
+
+      this.cache.set(id, trackerProps);
+
+      return this.createTrackerObject(type, id, trackerProps);
+    }
+
+    private createTrackerObject(
+      type: ObjectType,
+      id: Roll20Id,
+      props: IStateTrackerObjectProps
+    ): IStateTrackerObject {
+      return new StateTrackerObject(type, id, props, this);
+    }
+
+    private findObjsNoNewCacheEntry(properties: {
+      [property: string]: any;
+    }): IStateTrackerObject[] {
+      return this.findObjsProcess(properties, false);
+    }
+
+    // TODO cache filtered props immediately
+    // TODO optional arg to immediately cache some object props
+    private findObjsProcess(
+      properties: {
+        [property: string]: any;
+      },
+      doCacheResults: boolean
+    ): IStateTrackerObject[] {
       const cacheKey = this.keyFromSearchArgs(properties);
       const cacheResult = this.trackedSearches.get(cacheKey);
       if (cacheResult) {
@@ -166,7 +325,7 @@ export const TokenStateApi = (() => {
 
       const roll20Result = findObjs(properties);
       const newCacheValue: [ObjectType, Roll20Id][] = [];
-      if (properties._type) {
+      if (properties._type && doCacheResults) {
         this.trackedSearches.set(cacheKey, newCacheValue);
 
         let eventsForThisSearch = this.trackedEvents.get(cacheKey);
@@ -248,47 +407,6 @@ export const TokenStateApi = (() => {
 
         return this.createTrackerObject(type, id, objectProps);
       });
-    }
-
-    getObj(type: ObjectType, id: Roll20Id): IStateTrackerObject | undefined {
-      const cacheResult = this.cache.get(id);
-      if (cacheResult) {
-        return this.createTrackerObject(type, id, cacheResult);
-      }
-
-      const roll20Result = getObj(type, id);
-      if (!roll20Result) {
-        return;
-      }
-
-      if (!this.blacklist.ids.has(id)) {
-        return this.createAndRecordTrackerObject(type, id);
-      } else {
-        return this.createTrackerObject(
-          type,
-          id,
-          this.newEmptyTrackerObjectProps(type, id)
-        );
-      }
-    }
-
-    private createAndRecordTrackerObject(
-      type: ObjectType,
-      id: Roll20Id
-    ): IStateTrackerObject {
-      const trackerProps = this.newEmptyTrackerObjectProps(type, id);
-
-      this.cache.set(id, trackerProps);
-
-      return this.createTrackerObject(type, id, trackerProps);
-    }
-
-    private createTrackerObject(
-      type: ObjectType,
-      id: Roll20Id,
-      props: IStateTrackerObjectProps
-    ): IStateTrackerObject {
-      return new StateTrackerObject(type, id, props, this);
     }
 
     private keyFromSearchArgs(parameters: {
