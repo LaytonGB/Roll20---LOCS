@@ -140,7 +140,7 @@ export const TokenStateApi = (() => {
       this.subscribers.push(callback);
     }
 
-    unsubscribe(callback: () => void): void {
+    unsubscribe(callback: (obj: Roll20Object) => void): void {
       const foundCallbackIndex = this.subscribers.indexOf(callback);
       if (foundCallbackIndex === -1) {
         log(
@@ -154,7 +154,7 @@ export const TokenStateApi = (() => {
   }
 
   class StateTracker implements IStateTracker {
-    private events: Map<Roll20EventLabel, Roll20EventEmitter> =
+    private eventHandlers: Map<Roll20EventLabel, Roll20EventEmitter> =
       this.initEventHandlers();
 
     blacklist = {
@@ -279,7 +279,20 @@ export const TokenStateApi = (() => {
     }
 
     removeTrackedSearch(properties: { [property: string]: any }): void {
-      return;
+      const searchKey = this.keyFromSearchArgs(properties);
+      this.trackedSearches.delete(searchKey);
+
+      const events = this.trackedEvents.get(searchKey);
+
+      // TODO add tests for this section
+      if (events) {
+        for (const [eventLabel, callback] of events.entries()) {
+          this.eventHandlers.get(eventLabel)?.unsubscribe(callback);
+          this.eventHandlers.delete(eventLabel);
+        }
+      }
+
+      this.trackedEvents.delete(searchKey);
     }
 
     private createAndRecordTrackerObject(
@@ -393,7 +406,7 @@ export const TokenStateApi = (() => {
         );
 
         for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
-          this.events.get(eventLabel)?.subscribe(callback);
+          this.eventHandlers.get(eventLabel)?.subscribe(callback);
         }
       }
 
@@ -456,7 +469,7 @@ export const TokenStateApi = (() => {
       eventLabel: Roll20EventLabel,
       callback: (obj: Roll20Object) => void
     ): void {
-      const emitter = this.events.get(eventLabel);
+      const emitter = this.eventHandlers.get(eventLabel);
       if (!emitter) {
         log(
           'WARN: a subscription was attempted to an event that does not exist'

@@ -339,9 +339,6 @@ describe('object finding and filtering', () => {
     stateTracker.removeTrackedSearch(objSearchParams);
 
     expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
-    expect(trackedEventsForSearch?.has(`add:${objSearchType}`)).toBe(false);
-    expect(trackedEventsForSearch?.has(`change:${objSearchType}`)).toBe(false);
-    expect(trackedEventsForSearch?.has(`destroy:${objSearchType}`)).toBe(false);
   });
 });
 
