@@ -128,7 +128,7 @@ export const TokenStateApi = (() => {
 
     unsubscribe(callback: () => void): void {
       const foundCallbackIndex = this.subscribers.indexOf(callback);
-      if (!foundCallbackIndex) {
+      if (foundCallbackIndex === -1) {
         log(
           'WARN: cannot unsubscribe a callback function that is not already subscribed'
         );
@@ -175,7 +175,7 @@ export const TokenStateApi = (() => {
           this.trackedEvents.set(cacheKey, eventsForThisSearch);
         }
 
-        // TODO this is all possibly broke now, pretty sure
+        // TODO tidy these events
         eventsForThisSearch.set(
           `add:${properties._type}` as Roll20EventLabel,
           (obj: Roll20Object) => {
@@ -198,7 +198,7 @@ export const TokenStateApi = (() => {
             const foundObjectIndex = newCacheValue.findIndex(
               ([, id]) => id === obj.id
             );
-            if (!foundObjectIndex) {
+            if (foundObjectIndex === -1) {
               return;
             }
 
@@ -221,12 +221,12 @@ export const TokenStateApi = (() => {
             const foundObjectIndex = newCacheValue.findIndex(
               ([, id]) => id === obj.id
             );
-            if (!foundObjectIndex) {
+            if (foundObjectIndex === -1) {
               return;
             }
 
             if (newCacheValue.length === 1) {
-              // teardown all events and destroy map entries
+              this.trackedSearches.delete(cacheKey);
             } else {
               newCacheValue.splice(foundObjectIndex, 1);
             }

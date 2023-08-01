@@ -1,4 +1,4 @@
-import { createRoll20Object } from '../utils/roll20';
+import { newRoll20Object } from '../utils/roll20';
 
 const mockObjectConstants = {
   mockGraphicTop: 30,
@@ -53,7 +53,7 @@ const mockObjectParams: {
 
 const mockRequestResults: Map<string, Roll20Object> = mockObjectParams.reduce(
   (map: Map<string, Roll20Object>, { type, id, properties }) => {
-    map.set(id, createRoll20Object(type, id, properties));
+    map.set(id, newRoll20Object(type, id, properties));
     return map;
   },
   new Map<string, Roll20Object>()

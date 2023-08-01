@@ -10,7 +10,7 @@ import {
   Roll20EventLabel,
   TokenStateApi,
 } from '../src';
-import { createRoll20Object } from './utils/roll20';
+import { newRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
 global.getObj = () => {
@@ -287,7 +287,7 @@ describe.only('object finding and filtering', () => {
 
       triggerEvent(
         'add:graphic',
-        createRoll20Object('graphic', eventGraphicId, {
+        newRoll20Object('graphic', eventGraphicId, {
           top: mockValues.mockObjectConstants.mockGraphicTop,
         })
       );
@@ -308,7 +308,7 @@ describe.only('object finding and filtering', () => {
 
       triggerEvent(
         'destroy:graphic',
-        createRoll20Object('graphic', idToBeRemoved, {
+        newRoll20Object('graphic', idToBeRemoved, {
           top: mockValues.mockObjectConstants.mockGraphicTop,
         })
       );

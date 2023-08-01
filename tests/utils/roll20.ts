@@ -1,4 +1,4 @@
-export function createRoll20Object(
+export function newRoll20Object(
   type: ObjectType,
   id: string,
   properties: { [property: string]: any } = {}
