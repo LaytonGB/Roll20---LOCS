@@ -41,7 +41,7 @@ const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
   on
 );
 // @ts-ignore On overload causing bad-selection error
-const onSpy = jest.spyOn(global, 'on').mockImplementation(onMock);
+/* const onSpy =  */ jest.spyOn(global, 'on').mockImplementation(onMock);
 
 describe('state constructor', () => {
   it('can be created with no input', () => {
@@ -55,6 +55,8 @@ describe('state constructor', () => {
 
     expect(stateTracker.cache.size).toBe(0);
   });
+
+  it.todo('registers event listeners');
 });
 
 describe('object fetching', () => {
@@ -220,16 +222,27 @@ describe('object and property caching', () => {
       stateTracker = TokenStateApi.createStateTracker();
     });
 
-    it.skip('updates cached values on change', () => {
-      const stateTrackerResult = stateTracker.getObj(...getArgs);
-      stateTrackerResult?.set('top', 15);
+    it('updates cached values on change', () => {
+      const newTopValue = 15;
+
+      stateTracker.getObj(...getArgs);
+      getObj(...getArgs)?.set('top', newTopValue);
 
       expect(stateTracker.cache.get(getArgsId)?.trackedProps.get('top')).toBe(
-        15
+        newTopValue
       );
     });
 
     it.todo('removes cache entries on destroy');
+
+    afterAll(() => {
+      stateTracker = TokenStateApi.createStateTracker();
+      const stateTrackerResult = stateTracker.getObj(...getArgs);
+      stateTrackerResult?.set(
+        'top',
+        mockValues.mockObjectConstants.mockGraphicTop
+      );
+    });
   });
 });
 
