@@ -95,6 +95,20 @@ describe('object modifying', () => {
     expect(stateTrackerResult?.get('top')).toBe(15);
     expect(getObj(...getArgs)?.get('top')).toBe(15);
   });
+
+  afterAll(() => {
+    const stateTracker = TokenStateApi.createStateTracker();
+
+    const getArgsType = 'graphic';
+    const getArgsId = MockObjectName.MOCK_GRAPHIC;
+    const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
+
+    const stateTrackerResult = stateTracker.getObj(...getArgs);
+    stateTrackerResult?.set(
+      'top',
+      mockValues.mockObjectConstants.mockGraphicTop
+    );
+  });
 });
 
 describe('object and property caching', () => {

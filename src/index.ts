@@ -417,10 +417,10 @@ export const TokenStateApi = (() => {
       return roll20Result.map((roll20Obj) => {
         const type = roll20Obj.get('_type');
         const id = roll20Obj.id;
+        newCacheValue.push([type, id]);
+
         const objectProps =
           this.cache.get(id) || this.newEmptyTrackerObjectProps(type, id);
-
-        newCacheValue.push([type, id]);
 
         return this.createTrackerObject(type, id, objectProps);
       });
