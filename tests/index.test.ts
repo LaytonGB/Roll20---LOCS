@@ -72,36 +72,6 @@ describe('object fetching', () => {
   });
 });
 
-describe('object modifying', () => {
-  it('fetched objects can have their properties set', () => {
-    const stateTracker = TokenStateApi.createStateTracker();
-
-    const getArgsType = 'graphic';
-    const getArgsId = MockObjectName.MOCK_GRAPHIC;
-    const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
-
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.set('top', 15);
-
-    expect(stateTrackerResult?.get('top')).toBe(15);
-    expect(getObj(...getArgs)?.get('top')).toBe(15);
-  });
-
-  afterAll(() => {
-    const stateTracker = TokenStateApi.createStateTracker();
-
-    const getArgsType = 'graphic';
-    const getArgsId = MockObjectName.MOCK_GRAPHIC;
-    const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
-
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.set(
-      'top',
-      mockValues.mockObjectConstants.mockGraphicTop
-    );
-  });
-});
-
 describe('object and property caching', () => {
   const getArgsType = 'graphic';
   const getArgsId = MockObjectName.MOCK_GRAPHIC;
@@ -154,7 +124,18 @@ describe('object and property caching', () => {
       expect(cachedObject?.get('top')).toBe(newTopValue);
     });
 
-    it.todo('removes cache entries on destroy');
+    it('removes cache entries on destroy', () => {
+      const cachedObject = stateTracker.getObj(...getArgs);
+
+      expect(
+        stateTracker.trackedEvents.get(getArgsId)?.get(`destroy:${getArgsType}`)
+      ).toBeDefined();
+
+      cachedObject?.remove();
+
+      expect(stateTracker.cache.get(getArgsId)).toBeUndefined();
+      expect(stateTracker.trackedEvents.get(getArgsId)).toBeUndefined();
+    });
 
     afterAll(() => {
       stateTracker = TokenStateApi.createStateTracker();
