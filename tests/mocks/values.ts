@@ -3,6 +3,9 @@ import { MockRoll20Object } from '../utils/roll20';
 const mockObjectConstants = {
   mockGraphicTop: 30,
   mockGraphicLeft: 100,
+  mockAttributeHpName: 'hp',
+  mockAttributeHpCurrent: 10,
+  mockAttributeHpMax: 20,
 };
 
 export enum MockObjectName {
@@ -25,8 +28,9 @@ const mockObjectParams: {
     id: MockObjectName.MOCK_ATTRIBUTE,
     properties: {
       _characterid: MockObjectName.MOCK_CHARACTER,
-      current: 10,
-      max: 20,
+      name: mockObjectConstants.mockAttributeHpName,
+      current: mockObjectConstants.mockAttributeHpCurrent,
+      max: mockObjectConstants.mockAttributeHpMax,
     },
   },
   { type: 'character', id: MockObjectName.CREATED_CHARACTER },

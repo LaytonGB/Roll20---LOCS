@@ -207,9 +207,14 @@ describe('object finding and filtering', () => {
 
     const foundObjectIds = foundObjects.map((obj) => obj.id);
     expect(foundObjectIds).toMatchObject(objSearchResultIds);
+
+    const cachedSearchObjects = stateTracker.findObjs(objSearchParams);
+    const cachedObjectIds = cachedSearchObjects.map((obj) => obj.id);
+
+    expect(cachedObjectIds).toMatchObject(objSearchResultIds);
   });
 
-  it('caches previous searches if type is given', () => {
+  it('caches previous searches', () => {
     expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
 
     stateTracker.findObjs(objSearchParams);
@@ -235,15 +240,6 @@ describe('object finding and filtering', () => {
     expect(
       stateTracker.trackedSearches.get(noResultsSearchParamsKey)?.length
     ).toBe(0);
-  });
-
-  // TODO add caching for searches with no type
-  it('caches nothing if type is excluded', () => {
-    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
-
-    stateTracker.findObjs({ top: objSearchParams.top });
-
-    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
   });
 
   describe('tracks updates to maintain find results', () => {
@@ -313,7 +309,7 @@ describe('object finding and filtering', () => {
   });
 });
 
-describe.skip('getAttrByName and getAttrObjByName', () => {
+describe('getAttrByName and getAttrObjByName', () => {
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
@@ -322,13 +318,15 @@ describe.skip('getAttrByName and getAttrObjByName', () => {
     stateTracker = TokenStateApi.createStateTracker();
   });
 
-  // TODO review
-  it('caches each search', () => {
+  it('getAttrObjByName caches each search', () => {
     stateTracker.getAttrObjByName(...getAttrArgs);
 
-    expect(stateTracker.trackedEvents.has('destroy:character')).toBe(true);
     expect(
-      stateTracker.trackedAttributesForCharacter.get(getAttrCharacterId)
-    ).toContain('hp');
+      stateTracker.trackedAttributesForCharacter
+        .get(getAttrCharacterId)
+        ?.get('hp')
+    ).toBe(MockObjectName.MOCK_ATTRIBUTE);
   });
+
+  it.todo('adds events for each search');
 });

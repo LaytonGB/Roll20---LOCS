@@ -42,6 +42,7 @@ export interface IStateTracker {
   removeTrackedSearch: (properties: { [property: string]: any }) => void;
 }
 
+// TODO add methods for all cache interactions (eg, removeSearchCache, removeObjCache, etc)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const TokenStateApi = (() => {
   class Roll20EventEmitter {
@@ -94,55 +95,84 @@ export const TokenStateApi = (() => {
     trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
-      return this.findObjsProcess(properties, true);
-    }
-
-    // TODO add check for cache item deletions
-    // TODO add check for duplicate result creation
-    // TODO add check for cache item rename
-    getAttrObjByName(
-      character_id: string,
-      attribute_name: string,
-      cacheAllAttributes = false
-    ): Roll20Object | undefined {
-      let cachedCharacterAttributes =
-        this.trackedAttributesForCharacter.get(character_id);
-      if (!cachedCharacterAttributes) {
-        cachedCharacterAttributes = new Map();
-        this.trackedAttributesForCharacter.set(
-          character_id,
-          cachedCharacterAttributes
-        );
+      const cacheKey = this.keyFromSearchArgs(properties);
+      const cacheResult = this.trackedSearches.get(cacheKey);
+      if (cacheResult) {
+        return cacheResult
+          .map(([type, id]) => this.getObj(type, id))
+          .filter((obj) => obj) as Roll20Object[];
       }
 
-      const cachedAttributeId = cachedCharacterAttributes.get(attribute_name);
-      if (cachedAttributeId) {
-        return this.getObj('attribute', cachedAttributeId);
+      const roll20Result = findObjs(properties);
+      roll20Result.forEach(this.cacheObject.bind(this));
+
+      const newCacheValue = roll20Result.map((obj) => [
+        properties._type,
+        obj.id,
+      ]) as [ObjectType, string][];
+      this.trackedSearches.set(cacheKey, newCacheValue);
+
+      let eventsForThisSearch = this.trackedEvents.get(cacheKey);
+      if (!eventsForThisSearch) {
+        eventsForThisSearch = new Map();
+        this.trackedEvents.set(cacheKey, eventsForThisSearch);
       }
 
-      if (cacheAllAttributes) {
-        const searchArgs = { _type: 'attribute', _characterid: character_id };
-        const cachedFindResults = this.findObjsWithoutCaching(searchArgs);
-        let targetAttribute;
-        cachedFindResults.forEach((attr) => {
-          const name = attr.get('name');
-          cachedCharacterAttributes?.set(name, attr.id);
-          if (name === attribute_name) {
-            targetAttribute = attr;
+      // TODO tidy these events
+      eventsForThisSearch.set(
+        `add:${properties._type}` as Roll20EventLabel,
+        (obj: Roll20Object) => {
+          for (const [property, value] of Object.entries(properties)) {
+            if (obj.get(property) !== value) {
+              return;
+            }
           }
-        });
-        return targetAttribute;
-      } else {
-        const searchArgs = {
-          _type: 'attribute',
-          _characterid: character_id,
-          name: attribute_name,
-        };
-        const cachedFindResults = this.findObjsWithoutCaching(searchArgs);
-        if (cachedFindResults.length > 0) {
-          return cachedFindResults[0];
+          newCacheValue.push([obj.get('_type'), obj.id]);
         }
+      );
+
+      eventsForThisSearch.set(
+        `change:${properties._type}` as Roll20EventLabel,
+        (obj: Roll20Object) => {
+          const foundObjectIndex = newCacheValue.findIndex(
+            ([, id]) => id === obj.id
+          );
+          if (foundObjectIndex === -1) {
+            return;
+          }
+
+          for (const [property, value] of Object.entries(properties)) {
+            if (obj.get(property) !== value) {
+              newCacheValue.splice(foundObjectIndex, 1);
+              return;
+            }
+          }
+        }
+      );
+
+      eventsForThisSearch.set(
+        `destroy:${properties._type}` as Roll20EventLabel,
+        (obj: Roll20Object) => {
+          const foundObjectIndex = newCacheValue.findIndex(
+            ([, id]) => id === obj.id
+          );
+          if (foundObjectIndex === -1) {
+            return;
+          }
+
+          if (newCacheValue.length === 1) {
+            this.trackedSearches.delete(cacheKey);
+          } else {
+            newCacheValue.splice(foundObjectIndex, 1);
+          }
+        }
+      );
+
+      for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
+        this.eventHandlers.get(eventLabel)?.subscribe(callback);
       }
+
+      return roll20Result;
     }
 
     getAttrByName(
@@ -166,7 +196,7 @@ export const TokenStateApi = (() => {
       }
 
       const searchArgs = { _type: 'attribute', _characterid: character_id };
-      const cachedFindResults = this.findObjsWithoutCaching(searchArgs);
+      const cachedFindResults = this.findObjs(searchArgs);
       let targetAttribute = '';
       cachedFindResults.forEach((attr) => {
         const name = attr.get('name');
@@ -176,6 +206,42 @@ export const TokenStateApi = (() => {
         }
       });
       return targetAttribute;
+    }
+
+    // TODO add event for cache item deletions
+    // TODO add event for duplicate result creation?
+    // TODO add event for cache item rename
+    getAttrObjByName(
+      character_id: string,
+      attribute_name: string
+    ): Roll20Object | undefined {
+      let cachedCharacterAttributes =
+        this.trackedAttributesForCharacter.get(character_id);
+      if (!cachedCharacterAttributes) {
+        cachedCharacterAttributes = new Map();
+        this.trackedAttributesForCharacter.set(
+          character_id,
+          cachedCharacterAttributes
+        );
+      }
+
+      const cachedAttributeId = cachedCharacterAttributes.get(attribute_name);
+      if (cachedAttributeId) {
+        return this.getObj('attribute', cachedAttributeId);
+      }
+
+      const searchArgs = {
+        _type: 'attribute',
+        _characterid: character_id,
+        name: attribute_name,
+      };
+      const searchResults = this.findObjs(searchArgs);
+      if (searchResults.length > 0) {
+        const foundAttribute = searchResults[0];
+        cachedCharacterAttributes.set(attribute_name, foundAttribute.id);
+        this.cacheObject(foundAttribute);
+        return foundAttribute;
+      }
     }
 
     getObj(type: ObjectType, id: Roll20Id): Roll20Object | undefined {
@@ -212,112 +278,6 @@ export const TokenStateApi = (() => {
       if (!this.blacklist.has(obj.id)) {
         this.cache.set(obj.id, obj);
       }
-    }
-
-    private findObjsWithoutCaching(properties: {
-      [property: string]: any;
-    }): Roll20Object[] {
-      return this.findObjsProcess(properties, false);
-    }
-
-    // TODO cache filtered props immediately
-    // TODO optional arg to immediately cache some object props
-    private findObjsProcess(
-      properties: {
-        [property: string]: any;
-      },
-      doCacheResults: boolean
-    ): Roll20Object[] {
-      const cacheKey = this.keyFromSearchArgs(properties);
-      const cacheResult = this.trackedSearches.get(cacheKey);
-      if (cacheResult) {
-        return cacheResult
-          .map(([type, id]) => this.getObj(type, id))
-          .filter((obj) => obj) as Roll20Object[];
-      }
-
-      const roll20Result = findObjs(properties);
-      if (properties._type && doCacheResults) {
-        roll20Result.forEach((obj) => {
-          this.cacheObject(obj);
-        });
-
-        const newCacheValue = roll20Result.map((obj) => [
-          properties._type,
-          obj.id,
-        ]) as [ObjectType, string][];
-        this.trackedSearches.set(cacheKey, newCacheValue);
-
-        let eventsForThisSearch = this.trackedEvents.get(cacheKey);
-        if (!eventsForThisSearch) {
-          eventsForThisSearch = new Map();
-          this.trackedEvents.set(cacheKey, eventsForThisSearch);
-        }
-
-        // TODO tidy these events
-        eventsForThisSearch.set(
-          `add:${properties._type}` as Roll20EventLabel,
-          (obj: Roll20Object) => {
-            for (const [property, value] of Object.entries(properties)) {
-              if (property === '_type') {
-                continue;
-              }
-
-              if (obj.get(property) !== value) {
-                return;
-              }
-            }
-            newCacheValue.push([obj.get('_type'), obj.id]);
-          }
-        );
-
-        eventsForThisSearch.set(
-          `change:${properties._type}` as Roll20EventLabel,
-          (obj: Roll20Object) => {
-            const foundObjectIndex = newCacheValue.findIndex(
-              ([, id]) => id === obj.id
-            );
-            if (foundObjectIndex === -1) {
-              return;
-            }
-
-            for (const [property, value] of Object.entries(properties)) {
-              if (property === '_type') {
-                continue;
-              }
-
-              if (obj.get(property) !== value) {
-                newCacheValue.splice(foundObjectIndex, 1);
-                return;
-              }
-            }
-          }
-        );
-
-        eventsForThisSearch.set(
-          `destroy:${properties._type}` as Roll20EventLabel,
-          (obj: Roll20Object) => {
-            const foundObjectIndex = newCacheValue.findIndex(
-              ([, id]) => id === obj.id
-            );
-            if (foundObjectIndex === -1) {
-              return;
-            }
-
-            if (newCacheValue.length === 1) {
-              this.trackedSearches.delete(cacheKey);
-            } else {
-              newCacheValue.splice(foundObjectIndex, 1);
-            }
-          }
-        );
-
-        for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
-          this.eventHandlers.get(eventLabel)?.subscribe(callback);
-        }
-      }
-
-      return roll20Result;
     }
 
     private keyFromSearchArgs(parameters: {
