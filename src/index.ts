@@ -16,29 +16,15 @@ export interface IStateTrackerFactory {
   createStateTracker: () => IStateTracker;
 }
 
-export interface IStateTrackerObjectProps {
-  trackedEvents: Map<Roll20EventLabel, (() => void)[]>;
-  trackedProps: Map<string, any>;
-}
-
-export interface IStateTrackerObject extends Roll20Object {
-  stateTracker: IStateTrackerObjectProps;
-  getWithoutCaching: (property: string) => any;
-}
-
 // this matches the property and method signatures of the StateTracker class
 export interface IStateTracker {
-  blacklist: {
-    details: Map<Roll20Id, Set<string>>;
-    ids: Set<Roll20Id>;
-    properties: Set<string>;
-  };
-  cache: Map<Roll20Id, IStateTrackerObjectProps>;
+  blacklist: Set<Roll20Id>;
+  cache: Map<Roll20Id, Roll20Object>;
   trackedAttributesForCharacter: Map<Roll20Id, Map<string, Roll20Id>>;
   trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
   trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
 
-  findObjs: (properties: { [property: string]: any }) => IStateTrackerObject[];
+  findObjs: (properties: { [property: string]: any }) => Roll20Object[];
 
   getAttrByName: (
     character_id: Roll20Id,
@@ -49,79 +35,15 @@ export interface IStateTracker {
   getAttrObjByName: (
     character_id: Roll20Id,
     attribute_name: string
-  ) => IStateTrackerObject | undefined;
+  ) => Roll20Object | undefined;
 
-  getObj: (type: ObjectType, id: Roll20Id) => IStateTrackerObject | undefined;
+  getObj: (type: ObjectType, id: Roll20Id) => Roll20Object | undefined;
 
   removeTrackedSearch: (properties: { [property: string]: any }) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const TokenStateApi = (() => {
-  class StateTrackerObject implements IStateTrackerObject {
-    private stateTrackerObject: IStateTracker;
-
-    id: string;
-    type: ObjectType;
-    stateTracker: IStateTrackerObjectProps;
-
-    constructor(
-      type: ObjectType,
-      id: Roll20Id,
-      { trackedEvents, trackedProps }: IStateTrackerObjectProps,
-      stateTrackerObject: IStateTracker
-    ) {
-      this.type = type;
-      this.id = id;
-
-      this.stateTracker = {
-        trackedEvents,
-        trackedProps,
-      };
-
-      this.stateTrackerObject = stateTrackerObject;
-    }
-
-    get(property: string): any {
-      const cachedValue = this.stateTracker.trackedProps.get(property);
-      if (cachedValue) {
-        return cachedValue;
-      }
-
-      const thisObjectFromRoll20 = getObj(this.type, this.id);
-      const fetchedProperty = thisObjectFromRoll20?.get(property);
-      if (fetchedProperty) {
-        if (this.propertyIsCachable(property)) {
-          this.stateTracker.trackedProps.set(property, fetchedProperty);
-        }
-
-        return fetchedProperty;
-      }
-    }
-
-    getWithoutCaching(property: string): any {
-      const thisObjectFromRoll20 = getObj(this.type, this.id);
-      const fetchedProperty = thisObjectFromRoll20?.get(property);
-      return fetchedProperty;
-    }
-
-    remove(): void {
-      getObj(this.type, this.id)?.remove();
-    }
-
-    set(property: string, newValue: any): void {
-      getObj(this.type, this.id)?.set(property, newValue);
-    }
-
-    private propertyIsCachable(property: string): boolean {
-      const blacklist = this.stateTrackerObject.blacklist;
-      return !(
-        blacklist.properties.has(property) ||
-        blacklist.details.get(this.id)?.has(property)
-      );
-    }
-  }
-
   class Roll20EventEmitter {
     private subscribers: ((obj: Roll20Object) => void)[] = [];
 
@@ -161,12 +83,8 @@ export const TokenStateApi = (() => {
     private eventHandlers: Map<Roll20EventLabel, Roll20EventEmitter> =
       this.initEventHandlers();
 
-    blacklist = {
-      details: new Map<Roll20Id, Set<string>>(),
-      ids: new Set<Roll20Id>(),
-      properties: new Set<string>(),
-    };
-    cache = new Map<Roll20Id, IStateTrackerObjectProps>();
+    blacklist = new Set<string>();
+    cache = new Map<Roll20Id, Roll20Object>();
     trackedAttributesForCharacter: Map<Roll20Id, Map<string, Roll20Id>> =
       new Map();
     trackedEvents = new Map<
@@ -175,7 +93,7 @@ export const TokenStateApi = (() => {
     >();
     trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
 
-    findObjs(properties: { [property: string]: any }): IStateTrackerObject[] {
+    findObjs(properties: { [property: string]: any }): Roll20Object[] {
       return this.findObjsProcess(properties, true);
     }
 
@@ -186,7 +104,7 @@ export const TokenStateApi = (() => {
       character_id: string,
       attribute_name: string,
       cacheAllAttributes = false
-    ): IStateTrackerObject | undefined {
+    ): Roll20Object | undefined {
       let cachedCharacterAttributes =
         this.trackedAttributesForCharacter.get(character_id);
       if (!cachedCharacterAttributes) {
@@ -197,14 +115,14 @@ export const TokenStateApi = (() => {
         );
       }
 
-      const cachedAttribute = cachedCharacterAttributes.get(attribute_name);
-      if (cachedAttribute) {
-        return this.getObj('attribute', cachedAttribute);
+      const cachedAttributeId = cachedCharacterAttributes.get(attribute_name);
+      if (cachedAttributeId) {
+        return this.getObj('attribute', cachedAttributeId);
       }
 
       if (cacheAllAttributes) {
         const searchArgs = { _type: 'attribute', _characterid: character_id };
-        const cachedFindResults = this.findObjsNoNewCacheEntry(searchArgs);
+        const cachedFindResults = this.findObjsWithoutCaching(searchArgs);
         let targetAttribute;
         cachedFindResults.forEach((attr) => {
           const name = attr.get('name');
@@ -220,7 +138,7 @@ export const TokenStateApi = (() => {
           _characterid: character_id,
           name: attribute_name,
         };
-        const cachedFindResults = this.findObjsNoNewCacheEntry(searchArgs);
+        const cachedFindResults = this.findObjsWithoutCaching(searchArgs);
         if (cachedFindResults.length > 0) {
           return cachedFindResults[0];
         }
@@ -248,7 +166,7 @@ export const TokenStateApi = (() => {
       }
 
       const searchArgs = { _type: 'attribute', _characterid: character_id };
-      const cachedFindResults = this.findObjsNoNewCacheEntry(searchArgs);
+      const cachedFindResults = this.findObjsWithoutCaching(searchArgs);
       let targetAttribute = '';
       cachedFindResults.forEach((attr) => {
         const name = attr.get('name');
@@ -260,26 +178,17 @@ export const TokenStateApi = (() => {
       return targetAttribute;
     }
 
-    getObj(type: ObjectType, id: Roll20Id): IStateTrackerObject | undefined {
+    getObj(type: ObjectType, id: Roll20Id): Roll20Object | undefined {
       const cacheResult = this.cache.get(id);
       if (cacheResult) {
-        return this.createTrackerObject(type, id, cacheResult);
+        return cacheResult;
       }
 
       const roll20Result = getObj(type, id);
-      if (!roll20Result) {
-        return;
+      if (!this.blacklist.has(id)) {
+        roll20Result && this.cache.set(id, roll20Result);
       }
-
-      if (!this.blacklist.ids.has(id)) {
-        return this.createAndRecordTrackerObject(type, id);
-      } else {
-        return this.createTrackerObject(
-          type,
-          id,
-          this.newEmptyTrackerObjectProps(type, id)
-        );
-      }
+      return roll20Result;
     }
 
     removeTrackedSearch(properties: { [property: string]: any }): void {
@@ -299,28 +208,9 @@ export const TokenStateApi = (() => {
       this.trackedEvents.delete(searchKey);
     }
 
-    private createAndRecordTrackerObject(
-      type: ObjectType,
-      id: Roll20Id
-    ): IStateTrackerObject {
-      const trackerProps = this.newEmptyTrackerObjectProps(type, id);
-
-      this.cache.set(id, trackerProps);
-
-      return this.createTrackerObject(type, id, trackerProps);
-    }
-
-    private createTrackerObject(
-      type: ObjectType,
-      id: Roll20Id,
-      props: IStateTrackerObjectProps
-    ): IStateTrackerObject {
-      return new StateTrackerObject(type, id, props, this);
-    }
-
-    private findObjsNoNewCacheEntry(properties: {
+    private findObjsWithoutCaching(properties: {
       [property: string]: any;
-    }): IStateTrackerObject[] {
+    }): Roll20Object[] {
       return this.findObjsProcess(properties, false);
     }
 
@@ -331,13 +221,13 @@ export const TokenStateApi = (() => {
         [property: string]: any;
       },
       doCacheResults: boolean
-    ): IStateTrackerObject[] {
+    ): Roll20Object[] {
       const cacheKey = this.keyFromSearchArgs(properties);
       const cacheResult = this.trackedSearches.get(cacheKey);
       if (cacheResult) {
         return cacheResult
           .map(([type, id]) => this.getObj(type, id))
-          .filter((obj) => obj) as IStateTrackerObject[];
+          .filter((obj) => obj) as Roll20Object[];
       }
 
       const roll20Result = findObjs(properties);
@@ -414,16 +304,7 @@ export const TokenStateApi = (() => {
         }
       }
 
-      return roll20Result.map((roll20Obj) => {
-        const type = roll20Obj.get('_type');
-        const id = roll20Obj.id;
-        newCacheValue.push([type, id]);
-
-        const objectProps =
-          this.cache.get(id) || this.newEmptyTrackerObjectProps(type, id);
-
-        return this.createTrackerObject(type, id, objectProps);
-      });
+      return roll20Result;
     }
 
     private keyFromSearchArgs(parameters: {
@@ -432,19 +313,6 @@ export const TokenStateApi = (() => {
       return Object.entries(parameters)
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
-    }
-
-    private newEmptyTrackerObjectProps(
-      type: ObjectType,
-      id: Roll20Id
-    ): IStateTrackerObjectProps {
-      return {
-        trackedEvents: new Map(),
-        trackedProps: new Map([
-          ['_type', type],
-          ['_id', id],
-        ]),
-      };
     }
 
     private initEventHandlers(): Map<Roll20EventLabel, Roll20EventEmitter> {

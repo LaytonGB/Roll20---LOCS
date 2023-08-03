@@ -4,12 +4,7 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import {
-  IStateTracker,
-  IStateTrackerObject,
-  Roll20EventLabel,
-  TokenStateApi,
-} from '../src';
+import { IStateTracker, Roll20EventLabel, TokenStateApi } from '../src';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
@@ -75,12 +70,6 @@ describe('object fetching', () => {
     expect(fetchedCharacter).toBeDefined();
     expect(typeof fetchedCharacter?.id).toBe('string');
   });
-
-  it('adds a stateTracker property to objects', () => {
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-
-    expect(stateTrackerResult?.stateTracker).toBeDefined();
-  });
 });
 
 describe('object modifying', () => {
@@ -123,35 +112,16 @@ describe('object and property caching', () => {
     stateTracker = TokenStateApi.createStateTracker();
   });
 
-  it('caches fetched ids', () => {
+  it('caches fetched objects', () => {
     stateTracker.getObj(...getArgs);
 
     expect(stateTracker.cache.size).toBe(1);
     expect(stateTracker.cache.has(getArgsId)).toBe(true);
-  });
-
-  it('caches fetched object properties', () => {
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.get('top');
-
-    expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(true);
-    expect(stateTracker.cache.get(getArgsId)?.trackedProps?.has('top')).toBe(
-      true
-    );
 
     const getObjCallCount = getObjSpy.mock.calls.length;
-    stateTrackerResult?.get('top');
+    stateTracker.getObj(...getArgs);
 
-    expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount);
-  });
-
-  it('gets properties that do not yet have caching', () => {
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.getWithoutCaching('top');
-
-    expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
-      false
-    );
+    expect(getObjSpy).toBeCalledTimes(getObjCallCount);
   });
 
   it('can remove object caching', () => {
@@ -161,60 +131,12 @@ describe('object and property caching', () => {
     expect(stateTracker.cache.has(getArgsId)).toBe(false);
   });
 
-  it('can remove property caching using the related object', () => {
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.get('top');
-    stateTrackerResult?.stateTracker.trackedProps.delete('top');
-
-    expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
-      false
-    );
-    expect(stateTracker.cache.get(getArgsId)?.trackedProps.has('top')).toBe(
-      false
-    );
-  });
-
-  it('can remove property caching using the stateTracker object', () => {
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.get('top');
-    stateTracker.cache.get(getArgsId)?.trackedProps.delete('top');
-
-    expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
-      false
-    );
-    expect(stateTracker.cache.get(getArgsId)?.trackedProps.has('top')).toBe(
-      false
-    );
-  });
-
   it('can stop an object from being cached', () => {
-    stateTracker.blacklist.ids.add(getArgsId);
+    stateTracker.blacklist.add(getArgsId);
     const stateTrackerResult = stateTracker.getObj(...getArgs);
 
     expect(stateTrackerResult).toBeDefined();
     expect(stateTracker.cache.has(getArgsId)).toBe(false);
-  });
-
-  it('can stop a property from being cached', () => {
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTracker.blacklist.properties.add('top');
-    stateTrackerResult?.get('top');
-
-    expect(stateTrackerResult).toBeDefined();
-    expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
-      false
-    );
-  });
-
-  it('can stop a specific objects property from being cached', () => {
-    stateTracker.blacklist.details.set(getArgsId, new Set(['top']));
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-    stateTrackerResult?.get('top');
-
-    expect(stateTrackerResult).toBeDefined();
-    expect(stateTrackerResult?.stateTracker.trackedProps.has('top')).toBe(
-      false
-    );
   });
 
   describe('events', () => {
@@ -222,15 +144,14 @@ describe('object and property caching', () => {
       stateTracker = TokenStateApi.createStateTracker();
     });
 
-    it('updates cached values on change', () => {
+    it('cached objects update when fetched objects are changed', () => {
       const newTopValue = 15;
 
-      stateTracker.getObj(...getArgs);
-      getObj(...getArgs)?.set('top', newTopValue);
+      const cachedObject = stateTracker.getObj(...getArgs);
+      const fetchedObject = getObj(...getArgs);
+      fetchedObject?.set('top', newTopValue);
 
-      expect(stateTracker.cache.get(getArgsId)?.trackedProps.get('top')).toBe(
-        newTopValue
-      );
+      expect(cachedObject?.get('top')).toBe(newTopValue);
     });
 
     it.todo('removes cache entries on destroy');
@@ -328,7 +249,7 @@ describe('object finding and filtering', () => {
   describe('tracks updates to maintain find results', () => {
     const eventGraphicId = 'on_graphic';
 
-    let findObjsResults: IStateTrackerObject[];
+    let findObjsResults: Roll20Object[];
     beforeEach(() => {
       stateTracker = TokenStateApi.createStateTracker();
       findObjsResults = stateTracker.findObjs(objSearchParams);
