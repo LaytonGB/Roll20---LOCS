@@ -185,8 +185,8 @@ export const TokenStateApi = (() => {
       }
 
       const roll20Result = getObj(type, id);
-      if (!this.blacklist.has(id)) {
-        roll20Result && this.cache.set(id, roll20Result);
+      if (roll20Result) {
+        this.cacheObject(roll20Result);
       }
       return roll20Result;
     }
@@ -206,6 +206,12 @@ export const TokenStateApi = (() => {
       }
 
       this.trackedEvents.delete(searchKey);
+    }
+
+    private cacheObject(obj: Roll20Object): void {
+      if (!this.blacklist.has(obj.id)) {
+        this.cache.set(obj.id, obj);
+      }
     }
 
     private findObjsWithoutCaching(properties: {
@@ -231,8 +237,15 @@ export const TokenStateApi = (() => {
       }
 
       const roll20Result = findObjs(properties);
-      const newCacheValue: [ObjectType, Roll20Id][] = [];
       if (properties._type && doCacheResults) {
+        roll20Result.forEach((obj) => {
+          this.cacheObject(obj);
+        });
+
+        const newCacheValue = roll20Result.map((obj) => [
+          properties._type,
+          obj.id,
+        ]) as [ObjectType, string][];
         this.trackedSearches.set(cacheKey, newCacheValue);
 
         let eventsForThisSearch = this.trackedEvents.get(cacheKey);
