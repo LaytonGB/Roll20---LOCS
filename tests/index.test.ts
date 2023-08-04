@@ -315,6 +315,7 @@ describe('object finding and filtering', () => {
   });
 });
 
+// TODO condense tests using loops
 describe('getAttrByName and getAttrObjByName', () => {
   function paramsIntoKey([character_id, attribute_name]: [string, string]) {
     return `_type=attribute&_characterid=${character_id}&name=${attribute_name}`;
@@ -361,7 +362,36 @@ describe('getAttrByName and getAttrObjByName', () => {
     expect(trackedEvents?.has('destroy:attribute')).toBe(true); // fires if related character destroyed
   });
 
-  it.todo('getAttrByName uses cached values after first search');
-  it.todo('getAttrByName caches each search');
-  it.todo('getAttrByName adds events for each search');
+  it('getAttrByName caches each search', () => {
+    const cacheKey = paramsIntoKey(getAttrArgs);
+    stateTracker.getAttrByName(...getAttrArgs);
+
+    expect(
+      stateTracker.trackedSearches.get(cacheKey)?.map(([, id]) => id)
+    ).toContain(MockObjectName.MOCK_ATTRIBUTE);
+  });
+
+  it('getAttrByName uses cached values after first search', () => {
+    stateTracker.getAttrByName(...getAttrArgs);
+
+    const findObjsSpyCallCount = findObjsSpy.mock.calls.length;
+
+    stateTracker.getAttrByName(...getAttrArgs);
+
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsSpyCallCount);
+  });
+
+  it('getAttrByName adds events for each search', () => {
+    const cacheKey = paramsIntoKey(getAttrArgs);
+
+    expect(stateTracker.trackedEvents.has(cacheKey)).toBe(false);
+
+    stateTracker.getAttrByName(...getAttrArgs);
+
+    const trackedEvents = stateTracker.trackedEvents.get(cacheKey);
+    expect(trackedEvents).toBeDefined();
+    expect(trackedEvents?.has('add:attribute')).toBe(true);
+    expect(trackedEvents?.has('change:attribute')).toBe(true);
+    expect(trackedEvents?.has('destroy:attribute')).toBe(true); // fires if related character destroyed
+  });
 });

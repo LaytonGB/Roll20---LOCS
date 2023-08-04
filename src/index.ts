@@ -201,9 +201,7 @@ export const TokenStateApi = (() => {
       return attrObj.get(value_type);
     }
 
-    // TODO add event for cache item deletions
-    // TODO add event for duplicate result creation?
-    // TODO add event for cache item rename
+    // TODO duplicate results? does roll20 manage this?
     getAttrObjByName(
       character_id: string,
       attribute_name: string
