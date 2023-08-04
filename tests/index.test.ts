@@ -70,11 +70,14 @@ describe('object fetching', () => {
     stateTracker = TokenStateApi.createStateTracker();
   });
 
-  it('returns values just like roll20', () => {
+  it('makes calls for uncached values to roll20', () => {
+    expect(getObjSpy).not.toHaveBeenCalled();
+
     const fetchedCharacter = stateTracker.getObj(...getArgs);
 
     expect(fetchedCharacter).toBeDefined();
     expect(typeof fetchedCharacter?.id).toBe('string');
+    expect(getObjSpy).toHaveBeenCalled();
   });
 });
 
@@ -98,21 +101,6 @@ describe('object and property caching', () => {
     stateTracker.getObj(...getArgs);
 
     expect(getObjSpy).toBeCalledTimes(getObjCallCount);
-  });
-
-  it('can remove object caching', () => {
-    stateTracker.getObj(...getArgs);
-    stateTracker.cache.delete(getArgsId);
-
-    expect(stateTracker.cache.has(getArgsId)).toBe(false);
-  });
-
-  it('can stop an object from being cached', () => {
-    stateTracker.blacklist.add(getArgsId);
-    const stateTrackerResult = stateTracker.getObj(...getArgs);
-
-    expect(stateTrackerResult).toBeDefined();
-    expect(stateTracker.cache.has(getArgsId)).toBe(false);
   });
 
   describe('events', () => {

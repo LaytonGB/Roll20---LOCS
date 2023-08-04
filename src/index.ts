@@ -18,7 +18,6 @@ export interface IStateTrackerFactory {
 
 // this matches the property and method signatures of the StateTracker class
 export interface IStateTracker {
-  blacklist: Set<Roll20Id>;
   cache: Map<Roll20Id, Roll20Object>;
   trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
   trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
@@ -99,7 +98,6 @@ export const TokenStateApi = (() => {
     private eventHandlers: Map<Roll20EventLabel, Roll20EventEmitter> =
       this.initEventHandlers();
 
-    blacklist = new Set<string>();
     cache = new Map<Roll20Id, Roll20Object>();
     trackedEvents = new Map<
       string,
@@ -250,27 +248,22 @@ export const TokenStateApi = (() => {
     }
 
     private cacheObject(obj: Roll20Object): void {
-      if (!this.blacklist.has(obj.id)) {
-        this.cache.set(obj.id, obj);
-        if (!this.trackedEvents.has(obj.id)) {
-          const events = new Map<
-            Roll20EventLabel,
-            (obj: Roll20Object) => void
-          >();
-          this.trackedEvents.set(obj.id, events);
+      this.cache.set(obj.id, obj);
+      if (!this.trackedEvents.has(obj.id)) {
+        const events = new Map<Roll20EventLabel, (obj: Roll20Object) => void>();
+        this.trackedEvents.set(obj.id, events);
 
-          const destroyEventLabel = `destroy:${obj.get(
-            '_type'
-          )}` as Roll20EventLabel;
-          const destroyCallback = () => {
-            this.cache.delete(obj.id);
-            this.trackedEvents.delete(obj.id);
-          };
-          events.set(destroyEventLabel, destroyCallback);
-          this.eventHandlers
-            .get(destroyEventLabel)
-            ?.subscribeUntilFired(destroyCallback);
-        }
+        const destroyEventLabel = `destroy:${obj.get(
+          '_type'
+        )}` as Roll20EventLabel;
+        const destroyCallback = () => {
+          this.cache.delete(obj.id);
+          this.trackedEvents.delete(obj.id);
+        };
+        events.set(destroyEventLabel, destroyCallback);
+        this.eventHandlers
+          .get(destroyEventLabel)
+          ?.subscribeUntilFired(destroyCallback);
       }
     }
 
