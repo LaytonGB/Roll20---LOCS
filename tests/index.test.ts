@@ -206,7 +206,26 @@ describe('object finding and filtering', () => {
     );
   });
 
-  it.todo('still returns items if type is excluded');
+  it('still returns items if type is excluded', () => {
+    const objSearchParamsWithoutType = {
+      top: mockValues.mockObjectConstants.mockGraphicTop,
+    };
+    const objSearchParamsWithoutTypeKey = paramsIntoKey(
+      objSearchParamsWithoutType
+    );
+
+    expect(
+      stateTracker.trackedSearches.has(objSearchParamsWithoutTypeKey)
+    ).toBe(false);
+
+    expect(
+      stateTracker.findObjs(objSearchParamsWithoutType).length
+    ).toBeTruthy();
+
+    expect(
+      stateTracker.trackedSearches.has(objSearchParamsWithoutTypeKey)
+    ).toBe(true);
+  });
 
   it('caches even when no results are found', () => {
     expect(stateTracker.trackedSearches.has(noResultsSearchParamsKey)).toBe(
