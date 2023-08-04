@@ -36,7 +36,7 @@ const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
   on
 );
 // @ts-ignore On overload causing bad-selection error
-/* const onSpy =  */ jest.spyOn(global, 'on').mockImplementation(onMock);
+const onSpy = jest.spyOn(global, 'on').mockImplementation(onMock);
 
 describe('state constructor', () => {
   it('can be created with no input', () => {
@@ -51,7 +51,13 @@ describe('state constructor', () => {
     expect(stateTracker.cache.size).toBe(0);
   });
 
-  it.todo('registers event listeners');
+  it('registers event listeners', () => {
+    const startingOnSpyCallCount = onSpy.mock.calls.length;
+
+    TokenStateApi.createStateTracker();
+
+    expect(onSpy).toHaveBeenCalledTimes(startingOnSpyCallCount + 9); // numberOfConfiguredAttributes * numberOfRelevantEvents
+  });
 });
 
 describe('object fetching', () => {
