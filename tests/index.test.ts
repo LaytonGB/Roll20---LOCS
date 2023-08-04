@@ -131,7 +131,7 @@ describe('object and property caching', () => {
         stateTracker.trackedEvents.get(getArgsId)?.get(`destroy:${getArgsType}`)
       ).toBeDefined();
 
-      cachedObject?.remove();
+      triggerEvent('destroy:graphic', cachedObject as Roll20Object);
 
       expect(stateTracker.cache.get(getArgsId)).toBeUndefined();
       expect(stateTracker.trackedEvents.get(getArgsId)).toBeUndefined();

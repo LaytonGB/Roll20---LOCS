@@ -46,7 +46,7 @@ export interface IStateTracker {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const TokenStateApi = (() => {
   class Roll20EventEmitter {
-    private subscribers: ((obj: Roll20Object) => void)[] = [];
+    private subscribers: [(obj: Roll20Object) => void, boolean][] = [];
 
     label: Roll20EventLabel;
 
@@ -58,17 +58,33 @@ export const TokenStateApi = (() => {
     }
 
     fire(obj: Roll20Object): void {
-      for (const subscriberCallback of this.subscribers) {
-        subscriberCallback(obj);
+      const indexesToRemove: number[] = [];
+      this.subscribers.forEach(
+        ([subscriberCallback, removeAfterFiring], index) => {
+          subscriberCallback(obj);
+          if (removeAfterFiring) {
+            indexesToRemove.push(index);
+          }
+        }
+      );
+
+      for (const index of indexesToRemove) {
+        this.subscribers.splice(index, 1);
       }
     }
 
     subscribe(callback: (obj: Roll20Object) => void): void {
-      this.subscribers.push(callback);
+      this.subscribers.push([callback, false]);
+    }
+
+    subscribeUntilFired(callback: (obj: Roll20Object) => void): void {
+      this.subscribers.push([callback, true]);
     }
 
     unsubscribe(callback: (obj: Roll20Object) => void): void {
-      const foundCallbackIndex = this.subscribers.indexOf(callback);
+      const foundCallbackIndex = this.subscribers.findIndex(
+        ([storedCallback]) => storedCallback === callback
+      );
       if (foundCallbackIndex === -1) {
         log(
           'WARN: cannot unsubscribe a callback function that is not already subscribed'
@@ -277,6 +293,25 @@ export const TokenStateApi = (() => {
     private cacheObject(obj: Roll20Object): void {
       if (!this.blacklist.has(obj.id)) {
         this.cache.set(obj.id, obj);
+        if (!this.trackedEvents.has(obj.id)) {
+          const events = new Map<
+            Roll20EventLabel,
+            (obj: Roll20Object) => void
+          >();
+          this.trackedEvents.set(obj.id, events);
+
+          const destroyEventLabel = `destroy:${obj.get(
+            '_type'
+          )}` as Roll20EventLabel;
+          const destroyCallback = () => {
+            this.cache.delete(obj.id);
+            this.trackedEvents.delete(obj.id);
+          };
+          events.set(destroyEventLabel, destroyCallback);
+          this.eventHandlers
+            .get(destroyEventLabel)
+            ?.subscribeUntilFired(destroyCallback);
+        }
       }
     }
 
