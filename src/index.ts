@@ -20,7 +20,6 @@ export interface IStateTrackerFactory {
 export interface IStateTracker {
   blacklist: Set<Roll20Id>;
   cache: Map<Roll20Id, Roll20Object>;
-  trackedAttributesForCharacter: Map<Roll20Id, Map<string, Roll20Id>>;
   trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
   trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
 
@@ -102,8 +101,6 @@ export const TokenStateApi = (() => {
 
     blacklist = new Set<string>();
     cache = new Map<Roll20Id, Roll20Object>();
-    trackedAttributesForCharacter: Map<Roll20Id, Map<string, Roll20Id>> =
-      new Map();
     trackedEvents = new Map<
       string,
       Map<Roll20EventLabel, (eventDetails: any) => void>
@@ -196,32 +193,12 @@ export const TokenStateApi = (() => {
       attribute_name: string,
       value_type: 'current' | 'max' = 'current'
     ): string {
-      let cachedCharacterAttributes =
-        this.trackedAttributesForCharacter.get(character_id);
-      if (!cachedCharacterAttributes) {
-        cachedCharacterAttributes = new Map();
-        this.trackedAttributesForCharacter.set(
-          character_id,
-          cachedCharacterAttributes
-        );
+      const attrObj = this.getAttrObjByName(character_id, attribute_name);
+      if (!attrObj) {
+        return '';
       }
 
-      const cachedAttribute = cachedCharacterAttributes.get(attribute_name);
-      if (cachedAttribute) {
-        return this.getObj('attribute', cachedAttribute)?.get(value_type);
-      }
-
-      const searchArgs = { _type: 'attribute', _characterid: character_id };
-      const cachedFindResults = this.findObjs(searchArgs);
-      let targetAttribute = '';
-      cachedFindResults.forEach((attr) => {
-        const name = attr.get('name');
-        cachedCharacterAttributes?.set(name, attr.id);
-        if (name === attribute_name) {
-          targetAttribute = attr.get('name') || '';
-        }
-      });
-      return targetAttribute;
+      return attrObj.get(value_type);
     }
 
     // TODO add event for cache item deletions
@@ -231,21 +208,6 @@ export const TokenStateApi = (() => {
       character_id: string,
       attribute_name: string
     ): Roll20Object | undefined {
-      let cachedCharacterAttributes =
-        this.trackedAttributesForCharacter.get(character_id);
-      if (!cachedCharacterAttributes) {
-        cachedCharacterAttributes = new Map();
-        this.trackedAttributesForCharacter.set(
-          character_id,
-          cachedCharacterAttributes
-        );
-      }
-
-      const cachedAttributeId = cachedCharacterAttributes.get(attribute_name);
-      if (cachedAttributeId) {
-        return this.getObj('attribute', cachedAttributeId);
-      }
-
       const searchArgs = {
         _type: 'attribute',
         _characterid: character_id,
@@ -254,7 +216,6 @@ export const TokenStateApi = (() => {
       const searchResults = this.findObjs(searchArgs);
       if (searchResults.length > 0) {
         const foundAttribute = searchResults[0];
-        cachedCharacterAttributes.set(attribute_name, foundAttribute.id);
         this.cacheObject(foundAttribute);
         return foundAttribute;
       }

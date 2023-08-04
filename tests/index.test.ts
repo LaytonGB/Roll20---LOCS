@@ -329,13 +329,12 @@ describe('getAttrByName and getAttrObjByName', () => {
   });
 
   it('getAttrObjByName caches each search', () => {
+    const cacheKey = paramsIntoKey(getAttrArgs);
     stateTracker.getAttrObjByName(...getAttrArgs);
 
     expect(
-      stateTracker.trackedAttributesForCharacter
-        .get(getAttrCharacterId)
-        ?.get('hp')
-    ).toBe(MockObjectName.MOCK_ATTRIBUTE);
+      stateTracker.trackedSearches.get(cacheKey)?.map(([, id]) => id)
+    ).toContain(MockObjectName.MOCK_ATTRIBUTE);
   });
 
   it('getAttrObjByName uses cached values after first search', () => {
