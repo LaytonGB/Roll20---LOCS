@@ -316,6 +316,10 @@ describe('object finding and filtering', () => {
 });
 
 describe('getAttrByName and getAttrObjByName', () => {
+  function paramsIntoKey([character_id, attribute_name]: [string, string]) {
+    return `_type=attribute&_characterid=${character_id}&name=${attribute_name}`;
+  }
+
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
@@ -334,5 +338,31 @@ describe('getAttrByName and getAttrObjByName', () => {
     ).toBe(MockObjectName.MOCK_ATTRIBUTE);
   });
 
-  it.todo('adds events for each search');
+  it('getAttrObjByName uses cached values after first search', () => {
+    stateTracker.getAttrObjByName(...getAttrArgs);
+
+    const findObjsSpyCallCount = findObjsSpy.mock.calls.length;
+
+    stateTracker.getAttrObjByName(...getAttrArgs);
+
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsSpyCallCount);
+  });
+
+  it('getAttrObjByName adds events for each search', () => {
+    const cacheKey = paramsIntoKey(getAttrArgs);
+
+    expect(stateTracker.trackedEvents.has(cacheKey)).toBe(false);
+
+    stateTracker.getAttrObjByName(...getAttrArgs);
+
+    const trackedEvents = stateTracker.trackedEvents.get(cacheKey);
+    expect(trackedEvents).toBeDefined();
+    expect(trackedEvents?.has('add:attribute')).toBe(true);
+    expect(trackedEvents?.has('change:attribute')).toBe(true);
+    expect(trackedEvents?.has('destroy:attribute')).toBe(true); // fires if related character destroyed
+  });
+
+  it.todo('getAttrByName uses cached values after first search');
+  it.todo('getAttrByName caches each search');
+  it.todo('getAttrByName adds events for each search');
 });
