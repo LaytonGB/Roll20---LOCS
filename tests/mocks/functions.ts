@@ -48,7 +48,7 @@ function getAttrByName(
   character_id: string,
   attribute_name: string,
   value_type: 'current' | 'max' = 'current'
-) {
+): string {
   const allResults = findObjs({
     type: 'attribute',
     _characterid: character_id,
@@ -104,6 +104,10 @@ function getOnFunctions() {
   };
 }
 
+function log(message: string): void {
+  console.log(message);
+}
+
 export default {
   createObj,
   filterObjs,
@@ -111,4 +115,5 @@ export default {
   getAttrByName,
   getObj,
   getOnFunctions,
+  log,
 };

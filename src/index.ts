@@ -180,7 +180,7 @@ export const TokenStateApi = (() => {
       );
 
       for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
-        this.eventHandlers.get(eventLabel)?.subscribe(callback);
+        this.watchEvent(eventLabel, callback);
       }
 
       return roll20Result;
@@ -239,8 +239,7 @@ export const TokenStateApi = (() => {
       // TODO add tests for this section
       if (events) {
         for (const [eventLabel, callback] of events.entries()) {
-          this.eventHandlers.get(eventLabel)?.unsubscribe(callback);
-          this.eventHandlers.delete(eventLabel);
+          this.stopWatchingEvent(eventLabel, callback);
         }
       }
 
@@ -259,12 +258,25 @@ export const TokenStateApi = (() => {
         const destroyCallback = () => {
           this.cache.delete(obj.id);
           this.trackedEvents.delete(obj.id);
+          // TODO on destroy this callback should stop listening
         };
         events.set(destroyEventLabel, destroyCallback);
-        this.eventHandlers
-          .get(destroyEventLabel)
-          ?.subscribeUntilFired(destroyCallback);
+        this.watchEventOnce(destroyEventLabel, destroyCallback);
       }
+    }
+
+    private getEventOrNull(
+      eventLabel: Roll20EventLabel
+    ): Roll20EventEmitter | null {
+      const event = this.eventHandlers.get(eventLabel);
+      if (!event) {
+        log(
+          'WARN: a subscription was attempted to an event that does not exist'
+        );
+        return null;
+      }
+
+      return event;
     }
 
     private keyFromSearchArgs(parameters: {
@@ -297,19 +309,31 @@ export const TokenStateApi = (() => {
       return events;
     }
 
+    private stopWatchingEvent(
+      eventLabel: Roll20EventLabel,
+      callback: (obj: Roll20Object) => void
+    ): void {
+      this.eventHandlers.get(eventLabel)?.unsubscribe(callback);
+    }
+
     private watchEvent(
       eventLabel: Roll20EventLabel,
       callback: (obj: Roll20Object) => void
     ): void {
-      const emitter = this.eventHandlers.get(eventLabel);
-      if (!emitter) {
-        log(
-          'WARN: a subscription was attempted to an event that does not exist'
-        );
-        return;
+      const event = this.getEventOrNull(eventLabel);
+      if (event) {
+        event.subscribe(callback);
       }
+    }
 
-      emitter.subscribe(callback);
+    private watchEventOnce(
+      eventLabel: Roll20EventLabel,
+      callback: (obj: Roll20Object) => void
+    ): void {
+      const event = this.getEventOrNull(eventLabel);
+      if (event) {
+        event.subscribeUntilFired(callback);
+      }
     }
   }
 

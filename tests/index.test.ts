@@ -38,6 +38,12 @@ const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
 // @ts-ignore On overload causing bad-selection error
 const onSpy = jest.spyOn(global, 'on').mockImplementation(onMock);
 
+global.log = () => {
+  return;
+};
+const logMock = jest.fn<void, [string]>(mockFunctions.log);
+/* const logSpy = */ jest.spyOn(global, 'log').mockImplementation(logMock);
+
 describe('state constructor', () => {
   it('can be created with no input', () => {
     const stateTracker = TokenStateApi.createStateTracker();
@@ -77,7 +83,7 @@ describe('object fetching', () => {
 
     expect(fetchedCharacter).toBeDefined();
     expect(typeof fetchedCharacter?.id).toBe('string');
-    expect(getObjSpy).toHaveBeenCalled();
+    expect(getObjSpy).toHaveBeenCalledTimes(1);
   });
 });
 
