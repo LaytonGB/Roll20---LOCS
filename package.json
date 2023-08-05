@@ -1,10 +1,13 @@
 {
-  "name": "token-state-api",
-  "version": "0.1.0",
+  "name": "locs",
+  "version": "1.0.0",
   "description": "An API for Roll20.net to enable the automatic caching of tokens, their positions, and specific token attributes.",
-  "main": "index.js",
+  "main": "locs.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run create-target-file-without-exports & npm run build-generated-target-file & npm run delete-generated-target-file",
+    "create-target-file-without-exports": "sed -E \"s/export\\s+//g\" ./src/index.ts > ./src/target.ts",
+    "build-generated-target-file": "tsc ./src/target.ts --outFile ./locs.js --target es2019 --module amd",
+    "delete-generated-target-file": "rm ./src/target.ts"
   },
   "repository": {
     "type": "git",
@@ -18,11 +21,6 @@
   "homepage": "https://gitlab.com/LaytonGB/token-state-api#readme",
   "devDependencies": {
     "@types/roll20": "github:LaytonGB/types-roll20",
-    "@types/underscore": "^1.11.5",
-    "@typescript-eslint/eslint-plugin": "^5.60.1",
-    "@typescript-eslint/parser": "^5.60.1",
-    "eslint": "^8.43.0",
-    "prettier": "^2.8.8",
-    "typescript": "^5.1.5"
+    "typescript": "^5.1.6"
   }
 }

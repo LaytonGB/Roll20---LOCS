@@ -15,25 +15,24 @@
     ],
     "rules": {
         "indent": [
-            "error",
-            4
-        ],
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "max-len": [
-            "error",
+            "warn",
+            2,
             {
-                "code": 80
+                "SwitchCase": 1
             }
         ],
+        "linebreak-style": [
+            "warn",
+            "unix"
+        ],
+        "@typescript-eslint/no-explicit-any": 0,
+        "no-trailing-spaces": "warn",
         "quotes": [
-            "error",
-            "double"
+            "warn",
+            "single"
         ],
         "semi": [
-            "error",
+            "warn",
             "always"
         ]
     }
