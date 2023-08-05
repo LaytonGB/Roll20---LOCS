@@ -179,9 +179,11 @@ export const TokenStateApi = (() => {
         }
       );
 
-      for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
+      (
+        Object.entries(eventsForThisSearch) as [Roll20EventLabel, () => void][]
+      ).forEach(([eventLabel, callback]) => {
         this.watchEvent(eventLabel, callback);
-      }
+      });
 
       return roll20Result;
     }
@@ -238,9 +240,11 @@ export const TokenStateApi = (() => {
 
       // TODO add tests for this section
       if (events) {
-        for (const [eventLabel, callback] of events.entries()) {
-          this.stopWatchingEvent(eventLabel, callback);
-        }
+        (Object.entries(events) as [Roll20EventLabel, () => void][]).forEach(
+          ([eventLabel, callback]) => {
+            this.stopWatchingEvent(eventLabel, callback);
+          }
+        );
       }
 
       this.trackedEvents.delete(searchKey);
