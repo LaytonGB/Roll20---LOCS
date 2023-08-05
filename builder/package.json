@@ -20,7 +20,6 @@
   "homepage": "https://gitlab.com/LaytonGB/token-state-api#readme",
   "devDependencies": {
     "@types/jest": "^29.5.3",
-    "@types/underscore": "^1.11.5",
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",
     "eslint": "^8.43.0",
