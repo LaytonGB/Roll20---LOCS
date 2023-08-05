@@ -20,6 +20,7 @@
   },
   "homepage": "https://gitlab.com/LaytonGB/token-state-api#readme",
   "devDependencies": {
+    "@types/roll20": "github:LaytonGB/types-roll20",
     "typescript": "^5.1.6"
   }
 }
