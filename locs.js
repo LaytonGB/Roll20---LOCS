@@ -36,27 +36,39 @@ const TokenStateApi = (() => {
             this.subscribers.splice(foundCallbackIndex, 1);
         }
     }
+    // TODO add createObj that instantly caches obj
     class StateTracker {
         constructor() {
-            this.eventHandlers = this.initEventHandlers();
+            this.eventHandlers = new Map();
             this.cache = new Map();
             this.trackedEvents = new Map();
             this.trackedSearches = new Map();
         }
         findObjs(properties) {
+            function addResultIfMatches(obj) {
+                for (const [property, value] of Object.entries(properties)) {
+                    if (obj.get(property) !== value) {
+                        return;
+                    }
+                }
+                newCacheValue.push(obj);
+            }
+            function removeResultIfNotMatches(obj, foundObjectIndex) {
+                for (const [property, value] of Object.entries(properties)) {
+                    if (obj.get(property) !== value) {
+                        newCacheValue.splice(foundObjectIndex, 1);
+                        return;
+                    }
+                }
+            }
             const cacheKey = this.keyFromSearchArgs(properties);
             const cacheResult = this.trackedSearches.get(cacheKey);
             if (cacheResult) {
-                return cacheResult
-                    .map(([type, id]) => this.getObj(type, id))
-                    .filter((obj) => obj);
+                return cacheResult;
             }
             const roll20Result = findObjs(properties);
-            roll20Result.forEach(this.cacheObject.bind(this));
-            const newCacheValue = roll20Result.map((obj) => [
-                properties._type,
-                obj.id,
-            ]);
+            roll20Result.forEach((obj) => this.cacheObject(obj));
+            const newCacheValue = roll20Result;
             this.trackedSearches.set(cacheKey, newCacheValue);
             let eventsForThisSearch = this.trackedEvents.get(cacheKey);
             if (!eventsForThisSearch) {
@@ -64,41 +76,25 @@ const TokenStateApi = (() => {
                 this.trackedEvents.set(cacheKey, eventsForThisSearch);
             }
             // TODO tidy these events
-            eventsForThisSearch.set(`add:${properties._type}`, (obj) => {
-                for (const [property, value] of Object.entries(properties)) {
-                    if (obj.get(property) !== value) {
-                        return;
-                    }
-                }
-                newCacheValue.push([obj.get('_type'), obj.id]);
-            });
+            eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
             eventsForThisSearch.set(`change:${properties._type}`, (obj) => {
-                const foundObjectIndex = newCacheValue.findIndex(([, id]) => id === obj.id);
+                const foundObjectIndex = newCacheValue.indexOf(obj);
                 if (foundObjectIndex === -1) {
-                    return;
+                    addResultIfMatches(obj);
                 }
-                for (const [property, value] of Object.entries(properties)) {
-                    if (obj.get(property) !== value) {
-                        newCacheValue.splice(foundObjectIndex, 1);
-                        return;
-                    }
+                else {
+                    removeResultIfNotMatches(obj, foundObjectIndex);
                 }
             });
             eventsForThisSearch.set(`destroy:${properties._type}`, (obj) => {
-                const foundObjectIndex = newCacheValue.findIndex(([, id]) => id === obj.id);
-                if (foundObjectIndex === -1) {
-                    return;
-                }
-                if (newCacheValue.length === 1) {
-                    this.trackedSearches.delete(cacheKey);
-                }
-                else {
+                const foundObjectIndex = newCacheValue.indexOf(obj);
+                if (foundObjectIndex !== -1) {
                     newCacheValue.splice(foundObjectIndex, 1);
                 }
             });
-            Object.entries(eventsForThisSearch).forEach(([eventLabel, callback]) => {
+            for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
                 this.watchEvent(eventLabel, callback);
-            });
+            }
             return roll20Result;
         }
         getAttrByName(character_id, attribute_name, value_type = 'current') {
@@ -133,15 +129,15 @@ const TokenStateApi = (() => {
             }
             return roll20Result;
         }
+        // TODO add tests for this section
         removeTrackedSearch(properties) {
             const searchKey = this.keyFromSearchArgs(properties);
             this.trackedSearches.delete(searchKey);
             const events = this.trackedEvents.get(searchKey);
-            // TODO add tests for this section
             if (events) {
-                Object.entries(events).forEach(([eventLabel, callback]) => {
+                for (const [eventLabel, callback] of events.entries()) {
                     this.stopWatchingEvent(eventLabel, callback);
-                });
+                }
             }
             this.trackedEvents.delete(searchKey);
         }
@@ -160,11 +156,11 @@ const TokenStateApi = (() => {
                 this.watchEventOnce(destroyEventLabel, destroyCallback);
             }
         }
-        getEventOrNull(eventLabel) {
-            const event = this.eventHandlers.get(eventLabel);
+        getOrCreateEvent(eventLabel) {
+            let event = this.eventHandlers.get(eventLabel);
             if (!event) {
-                log('WARN: a subscription was attempted to an event that does not exist');
-                return null;
+                event = new Roll20EventEmitter(eventLabel);
+                this.eventHandlers.set(eventLabel, event);
             }
             return event;
         }
@@ -173,39 +169,17 @@ const TokenStateApi = (() => {
                 .map(([key, value]) => `${key}=${value}`)
                 .join('&');
         }
-        initEventHandlers() {
-            const eventsToWatch = [
-                'add:attribute',
-                'add:character',
-                'add:graphic',
-                'change:attribute',
-                'change:character',
-                'change:graphic',
-                'destroy:attribute',
-                'destroy:character',
-                'destroy:graphic',
-            ];
-            const events = new Map(eventsToWatch.map((eventLabel) => [
-                eventLabel,
-                new Roll20EventEmitter(eventLabel),
-            ]));
-            return events;
-        }
         stopWatchingEvent(eventLabel, callback) {
             var _a;
             (_a = this.eventHandlers.get(eventLabel)) === null || _a === void 0 ? void 0 : _a.unsubscribe(callback);
         }
         watchEvent(eventLabel, callback) {
-            const event = this.getEventOrNull(eventLabel);
-            if (event) {
-                event.subscribe(callback);
-            }
+            const event = this.getOrCreateEvent(eventLabel);
+            event.subscribe(callback);
         }
         watchEventOnce(eventLabel, callback) {
-            const event = this.getEventOrNull(eventLabel);
-            if (event) {
-                event.subscribeUntilFired(callback);
-            }
+            const event = this.getOrCreateEvent(eventLabel);
+            event.subscribeUntilFired(callback);
         }
     }
     return {

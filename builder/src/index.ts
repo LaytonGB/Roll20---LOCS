@@ -20,7 +20,7 @@ export interface IStateTrackerFactory {
 export interface IStateTracker {
   cache: Map<Roll20Id, Roll20Object>;
   trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
-  trackedSearches: Map<string, [ObjectType, Roll20Id][]>;
+  trackedSearches: Map<string, Roll20Object[]>;
 
   findObjs: (properties: { [property: string]: any }) => Roll20Object[];
 
@@ -42,7 +42,7 @@ export interface IStateTracker {
 
 // TODO add methods for all cache interactions (eg, removeSearchCache, removeObjCache, etc)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const TokenStateApi = (() => {
+export const TokenStateApi: IStateTrackerFactory = (() => {
   class Roll20EventEmitter {
     private subscribers: [(obj: Roll20Object) => void, boolean][] = [];
 
@@ -94,33 +94,49 @@ export const TokenStateApi = (() => {
     }
   }
 
+  // TODO add createObj that instantly caches obj
   class StateTracker implements IStateTracker {
-    private eventHandlers: Map<Roll20EventLabel, Roll20EventEmitter> =
-      this.initEventHandlers();
+    private eventHandlers = new Map<Roll20EventLabel, Roll20EventEmitter>();
 
     cache = new Map<Roll20Id, Roll20Object>();
     trackedEvents = new Map<
       string,
       Map<Roll20EventLabel, (eventDetails: any) => void>
     >();
-    trackedSearches = new Map<string, [ObjectType, Roll20Id][]>();
+    trackedSearches = new Map<string, Roll20Object[]>();
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
+      function addResultIfMatches(obj: Roll20Object) {
+        for (const [property, value] of Object.entries(properties)) {
+          if (obj.get(property) !== value) {
+            return;
+          }
+        }
+        newCacheValue.push(obj);
+      }
+
+      function removeResultIfNotMatches(
+        obj: Roll20Object,
+        foundObjectIndex: number
+      ) {
+        for (const [property, value] of Object.entries(properties)) {
+          if (obj.get(property) !== value) {
+            newCacheValue.splice(foundObjectIndex, 1);
+            return;
+          }
+        }
+      }
+
       const cacheKey = this.keyFromSearchArgs(properties);
       const cacheResult = this.trackedSearches.get(cacheKey);
       if (cacheResult) {
-        return cacheResult
-          .map(([type, id]) => this.getObj(type, id))
-          .filter((obj) => obj) as Roll20Object[];
+        return cacheResult;
       }
 
       const roll20Result = findObjs(properties);
-      roll20Result.forEach(this.cacheObject.bind(this));
+      roll20Result.forEach((obj) => this.cacheObject(obj));
 
-      const newCacheValue = roll20Result.map((obj) => [
-        properties._type,
-        obj.id,
-      ]) as [ObjectType, string][];
+      const newCacheValue = roll20Result;
       this.trackedSearches.set(cacheKey, newCacheValue);
 
       let eventsForThisSearch = this.trackedEvents.get(cacheKey);
@@ -132,31 +148,17 @@ export const TokenStateApi = (() => {
       // TODO tidy these events
       eventsForThisSearch.set(
         `add:${properties._type}` as Roll20EventLabel,
-        (obj: Roll20Object) => {
-          for (const [property, value] of Object.entries(properties)) {
-            if (obj.get(property) !== value) {
-              return;
-            }
-          }
-          newCacheValue.push([obj.get('_type'), obj.id]);
-        }
+        addResultIfMatches
       );
 
       eventsForThisSearch.set(
         `change:${properties._type}` as Roll20EventLabel,
         (obj: Roll20Object) => {
-          const foundObjectIndex = newCacheValue.findIndex(
-            ([, id]) => id === obj.id
-          );
+          const foundObjectIndex = newCacheValue.indexOf(obj);
           if (foundObjectIndex === -1) {
-            return;
-          }
-
-          for (const [property, value] of Object.entries(properties)) {
-            if (obj.get(property) !== value) {
-              newCacheValue.splice(foundObjectIndex, 1);
-              return;
-            }
+            addResultIfMatches(obj);
+          } else {
+            removeResultIfNotMatches(obj, foundObjectIndex);
           }
         }
       );
@@ -164,26 +166,16 @@ export const TokenStateApi = (() => {
       eventsForThisSearch.set(
         `destroy:${properties._type}` as Roll20EventLabel,
         (obj: Roll20Object) => {
-          const foundObjectIndex = newCacheValue.findIndex(
-            ([, id]) => id === obj.id
-          );
-          if (foundObjectIndex === -1) {
-            return;
-          }
-
-          if (newCacheValue.length === 1) {
-            this.trackedSearches.delete(cacheKey);
-          } else {
+          const foundObjectIndex = newCacheValue.indexOf(obj);
+          if (foundObjectIndex !== -1) {
             newCacheValue.splice(foundObjectIndex, 1);
           }
         }
       );
 
-      (
-        Object.entries(eventsForThisSearch) as [Roll20EventLabel, () => void][]
-      ).forEach(([eventLabel, callback]) => {
+      for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
         this.watchEvent(eventLabel, callback);
-      });
+      }
 
       return roll20Result;
     }
@@ -232,19 +224,17 @@ export const TokenStateApi = (() => {
       return roll20Result;
     }
 
+    // TODO add tests for this section
     removeTrackedSearch(properties: { [property: string]: any }): void {
       const searchKey = this.keyFromSearchArgs(properties);
       this.trackedSearches.delete(searchKey);
 
       const events = this.trackedEvents.get(searchKey);
 
-      // TODO add tests for this section
       if (events) {
-        (Object.entries(events) as [Roll20EventLabel, () => void][]).forEach(
-          ([eventLabel, callback]) => {
-            this.stopWatchingEvent(eventLabel, callback);
-          }
-        );
+        for (const [eventLabel, callback] of events.entries()) {
+          this.stopWatchingEvent(eventLabel, callback);
+        }
       }
 
       this.trackedEvents.delete(searchKey);
@@ -269,17 +259,12 @@ export const TokenStateApi = (() => {
       }
     }
 
-    private getEventOrNull(
-      eventLabel: Roll20EventLabel
-    ): Roll20EventEmitter | null {
-      const event = this.eventHandlers.get(eventLabel);
+    private getOrCreateEvent(eventLabel: Roll20EventLabel): Roll20EventEmitter {
+      let event = this.eventHandlers.get(eventLabel);
       if (!event) {
-        log(
-          'WARN: a subscription was attempted to an event that does not exist'
-        );
-        return null;
+        event = new Roll20EventEmitter(eventLabel);
+        this.eventHandlers.set(eventLabel, event);
       }
-
       return event;
     }
 
@@ -289,28 +274,6 @@ export const TokenStateApi = (() => {
       return Object.entries(parameters)
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
-    }
-
-    private initEventHandlers(): Map<Roll20EventLabel, Roll20EventEmitter> {
-      const eventsToWatch: Roll20EventLabel[] = [
-        'add:attribute',
-        'add:character',
-        'add:graphic',
-        'change:attribute',
-        'change:character',
-        'change:graphic',
-        'destroy:attribute',
-        'destroy:character',
-        'destroy:graphic',
-      ];
-
-      const events = new Map(
-        eventsToWatch.map((eventLabel) => [
-          eventLabel,
-          new Roll20EventEmitter(eventLabel),
-        ])
-      );
-      return events;
     }
 
     private stopWatchingEvent(
@@ -324,20 +287,16 @@ export const TokenStateApi = (() => {
       eventLabel: Roll20EventLabel,
       callback: (obj: Roll20Object) => void
     ): void {
-      const event = this.getEventOrNull(eventLabel);
-      if (event) {
-        event.subscribe(callback);
-      }
+      const event = this.getOrCreateEvent(eventLabel);
+      event.subscribe(callback);
     }
 
     private watchEventOnce(
       eventLabel: Roll20EventLabel,
       callback: (obj: Roll20Object) => void
     ): void {
-      const event = this.getEventOrNull(eventLabel);
-      if (event) {
-        event.subscribeUntilFired(callback);
-      }
+      const event = this.getOrCreateEvent(eventLabel);
+      event.subscribeUntilFired(callback);
     }
   }
 

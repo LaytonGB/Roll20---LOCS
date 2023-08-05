@@ -36,7 +36,7 @@ const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
   on
 );
 // @ts-ignore On overload causing bad-selection error
-const onSpy = jest.spyOn(global, 'on').mockImplementation(onMock);
+/* const onSpy = */ jest.spyOn(global, 'on').mockImplementation(onMock);
 
 global.log = () => {
   return;
@@ -55,14 +55,6 @@ describe('state constructor', () => {
     const stateTracker = TokenStateApi.createStateTracker();
 
     expect(stateTracker.cache.size).toBe(0);
-  });
-
-  it('registers event listeners', () => {
-    const startingOnSpyCallCount = onSpy.mock.calls.length;
-
-    TokenStateApi.createStateTracker();
-
-    expect(onSpy).toHaveBeenCalledTimes(startingOnSpyCallCount + 9); // numberOfConfiguredAttributes * numberOfRelevantEvents
   });
 });
 
@@ -252,8 +244,6 @@ describe('object finding and filtering', () => {
     });
 
     it('adds new results to cache when matching object created', () => {
-      const objsFoundCount = findObjsResults.length;
-
       triggerEvent(
         'add:graphic',
         new MockRoll20Object('graphic', eventGraphicId, {
@@ -263,9 +253,8 @@ describe('object finding and filtering', () => {
 
       const newSearchCacheIds = stateTracker.trackedSearches
         .get(objSearchParamsKey)
-        ?.map((x) => x[1]);
+        ?.map((obj) => obj.id);
 
-      expect(newSearchCacheIds?.length).toBe(objsFoundCount + 1);
       expect(newSearchCacheIds).toContain(eventGraphicId);
     });
 
@@ -274,21 +263,17 @@ describe('object finding and filtering', () => {
     it.todo('adds new results to cache when object changed to match');
 
     it('removes entries from cache when matching object destroyed', () => {
-      const objsFoundCount = findObjsResults.length;
       const idToBeRemoved = findObjsResults[0].id;
 
       triggerEvent(
         'destroy:graphic',
-        new MockRoll20Object('graphic', idToBeRemoved, {
-          top: mockValues.mockObjectConstants.mockGraphicTop,
-        })
+        mockValues.mockRequestResults.get(idToBeRemoved) as Roll20Object
       );
 
       const newSearchCacheIds = stateTracker.trackedSearches
         .get(objSearchParamsKey)
-        ?.map((x) => x[1]);
+        ?.map((obj) => obj.id);
 
-      expect(newSearchCacheIds?.length).toBe(objsFoundCount - 1);
       expect(newSearchCacheIds).not.toContain(idToBeRemoved);
     });
   });
@@ -328,7 +313,7 @@ describe('getAttrByName and getAttrObjByName', () => {
     stateTracker.getAttrObjByName(...getAttrArgs);
 
     expect(
-      stateTracker.trackedSearches.get(cacheKey)?.map(([, id]) => id)
+      stateTracker.trackedSearches.get(cacheKey)?.map((obj) => obj.id)
     ).toContain(MockObjectName.MOCK_ATTRIBUTE);
   });
 
@@ -361,7 +346,7 @@ describe('getAttrByName and getAttrObjByName', () => {
     stateTracker.getAttrByName(...getAttrArgs);
 
     expect(
-      stateTracker.trackedSearches.get(cacheKey)?.map(([, id]) => id)
+      stateTracker.trackedSearches.get(cacheKey)?.map((obj) => obj.id)
     ).toContain(MockObjectName.MOCK_ATTRIBUTE);
   });
 

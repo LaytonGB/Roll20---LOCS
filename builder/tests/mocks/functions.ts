@@ -81,8 +81,7 @@ function getObj(type: ObjectType, id: string): Roll20Object | undefined {
 }
 
 function getOnFunctions() {
-  const events: Map<Roll20EventLabel, ((obj: Roll20Object) => void)[]> =
-    new Map();
+  const events = new Map<Roll20EventLabel, ((obj: Roll20Object) => void)[]>();
 
   return {
     triggerEvent: (eventLabel: Roll20EventLabel, obj: Roll20Object): void => {
