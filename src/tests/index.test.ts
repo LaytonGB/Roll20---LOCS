@@ -4,7 +4,7 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import { IStateTracker, Roll20EventLabel, TokenStateApi } from '../src';
+import { IStateTracker, Roll20EventLabel, TokenStateApi } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types

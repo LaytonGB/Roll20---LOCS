@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { Roll20EventLabel } from '../../src';
+import { Roll20EventLabel } from '../..';
 import mockValues from './values';
 
 function createObj(
