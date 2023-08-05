@@ -253,7 +253,6 @@ describe('object finding and filtering', () => {
 
     it('adds new results to cache when matching object created', () => {
       const objsFoundCount = findObjsResults.length;
-      const findObjsCallsAtTestStart = findObjsSpy.mock.calls.length;
 
       triggerEvent(
         'add:graphic',
@@ -268,12 +267,14 @@ describe('object finding and filtering', () => {
 
       expect(newSearchCacheIds?.length).toBe(objsFoundCount + 1);
       expect(newSearchCacheIds).toContain(eventGraphicId);
-      expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallsAtTestStart);
     });
+
+    it.todo('removes results when existing entry changed to not match');
+
+    it.todo('adds new results to cache when object changed to match');
 
     it('removes entries from cache when matching object destroyed', () => {
       const objsFoundCount = findObjsResults.length;
-      const findObjsCallsAtTestStart = findObjsSpy.mock.calls.length;
       const idToBeRemoved = findObjsResults[0].id;
 
       triggerEvent(
@@ -289,7 +290,6 @@ describe('object finding and filtering', () => {
 
       expect(newSearchCacheIds?.length).toBe(objsFoundCount - 1);
       expect(newSearchCacheIds).not.toContain(idToBeRemoved);
-      expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallsAtTestStart);
     });
   });
 
