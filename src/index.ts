@@ -1,16 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 type Roll20Id = string;
-export type Roll20EventLabel =
-  | 'add:attribute'
-  | 'add:character'
-  | 'add:graphic'
-  | 'change:attribute'
-  | 'change:character'
-  | 'change:graphic'
-  | 'destroy:attribute'
-  | 'destroy:character'
-  | 'destroy:graphic';
+export type Roll20EventLabel = string;
 
 export interface IStateTrackerFactory {
   createStateTracker: () => IStateTracker;
@@ -23,6 +14,8 @@ export interface IStateTracker {
   trackedSearches: Map<string, Roll20Object[]>;
 
   findObjs: (properties: { [property: string]: any }) => Roll20Object[];
+
+  filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
 
   getAttrByName: (
     character_id: Roll20Id,
@@ -146,13 +139,10 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       }
 
       // TODO tidy these events
-      eventsForThisSearch.set(
-        `add:${properties._type}` as Roll20EventLabel,
-        addResultIfMatches
-      );
+      eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
 
       eventsForThisSearch.set(
-        `change:${properties._type}` as Roll20EventLabel,
+        `change:${properties._type}`,
         (obj: Roll20Object) => {
           const foundObjectIndex = newCacheValue.indexOf(obj);
           if (foundObjectIndex === -1) {
@@ -164,7 +154,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       );
 
       eventsForThisSearch.set(
-        `destroy:${properties._type}` as Roll20EventLabel,
+        `destroy:${properties._type}`,
         (obj: Roll20Object) => {
           const foundObjectIndex = newCacheValue.indexOf(obj);
           if (foundObjectIndex !== -1) {
@@ -178,6 +168,10 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       }
 
       return roll20Result;
+    }
+
+    filterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
+      return [];
     }
 
     getAttrByName(
@@ -246,9 +240,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
         const events = new Map<Roll20EventLabel, (obj: Roll20Object) => void>();
         this.trackedEvents.set(obj.id, events);
 
-        const destroyEventLabel = `destroy:${obj.get(
-          '_type'
-        )}` as Roll20EventLabel;
+        const destroyEventLabel = `destroy:${obj.get('_type')}`;
         const destroyCallback = () => {
           this.cache.delete(obj.id);
           this.trackedEvents.delete(obj.id);

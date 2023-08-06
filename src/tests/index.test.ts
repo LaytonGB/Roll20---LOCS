@@ -140,7 +140,7 @@ describe('object and property caching', () => {
   });
 });
 
-describe('object finding and filtering', () => {
+describe('findObjs', () => {
   function paramsIntoKey(params: { [param: string]: any }) {
     return Object.entries(params)
       .reduce(
@@ -291,6 +291,60 @@ describe('object finding and filtering', () => {
     stateTracker.removeTrackedSearch(objSearchParams);
 
     expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
+  });
+});
+
+describe('filterObjs', () => {
+  function newBasicFilterFromParams(params: { [param: string]: any }) {
+    return (obj: Roll20Object) => {
+      return Object.entries(params).every(
+        ([param, value]) => obj.get(param) === value
+      );
+    };
+  }
+
+  const objSearchResultIds = [
+    MockObjectName.CREATED_GRAPHIC,
+    MockObjectName.MOCK_GRAPHIC,
+  ];
+  const objSearchType = 'graphic';
+  const objSearchParams = {
+    _type: objSearchType,
+    top: mockValues.mockObjectConstants.mockGraphicTop,
+  };
+  const objSearchFilterFunc = newBasicFilterFromParams(objSearchParams);
+
+  const noResultsSearchParams = {
+    _type: 'page',
+    top: mockValues.mockObjectConstants.mockGraphicTop,
+  };
+  const noResultsSearchFilterFunc = newBasicFilterFromParams(
+    noResultsSearchParams
+  );
+
+  let stateTracker: IStateTracker;
+  beforeEach(() => {
+    stateTracker = TokenStateApi.createStateTracker();
+  });
+
+  it('finds relevant items', () => {
+    const resultsWith2Matches = stateTracker.filterObjs(objSearchFilterFunc);
+
+    expect(resultsWith2Matches).toHaveLength(2);
+
+    const resultsWith0Matches = stateTracker.filterObjs(
+      noResultsSearchFilterFunc
+    );
+
+    expect(resultsWith0Matches).toHaveLength(0);
+  });
+
+  it.todo('caches previous searches');
+  it.todo('caches even when no results are found');
+  describe('tracks updates to maintain find results', () => {
+    it.todo('removes results when existing entry changed to not match');
+    it.todo('adds new results to cache when object changed to match');
+    it.todo('removes entries from cache when matching object destroyed');
   });
 });
 
