@@ -270,10 +270,6 @@ describe('findObjs', () => {
       expect(newSearchCacheIds).toContain(eventGraphicId);
     });
 
-    it.todo('removes results when existing entry changed to not match');
-
-    it.todo('adds new results to cache when object changed to match');
-
     it('removes entries from cache when matching object destroyed', () => {
       const idToBeRemoved = findObjsResults[0].id;
 
@@ -288,8 +284,13 @@ describe('findObjs', () => {
 
       expect(newSearchCacheIds).not.toContain(idToBeRemoved);
     });
+
+    it.todo('removes results when existing entry changed to not match');
+
+    it.todo('adds new results to cache when object changed to match');
   });
 
+  // TODO finish writing this test
   it('allows cache removal', () => {
     stateTracker.findObjs(objSearchParams);
     const trackedEventsForSearch =
@@ -368,9 +369,54 @@ describe('filterObjs', () => {
   });
 
   describe('tracks updates to maintain find results', () => {
-    it.todo('removes results when existing entry changed to not match');
-    it.todo('adds new results to cache when object changed to match');
-    it.todo('removes entries from cache when matching object destroyed');
+    const allObjectTypes: ObjectType[] = [
+      'graphic',
+      'text',
+      'path',
+      'character',
+      'ability',
+      'attribute',
+      'handout',
+      'rollabletable',
+      'tableitem',
+      'macro',
+      'campaign',
+      'player',
+      'page',
+    ];
+
+    it('adds new results to cache when any object created', () => {
+      for (const type of allObjectTypes) {
+        // TODO
+      }
+
+      const newSearchCacheIds = stateTracker.trackedSearches
+        .get(objSearchParamsKey)
+        ?.map((obj) => obj.id);
+
+      expect(newSearchCacheIds).toContain(eventGraphicId);
+    });
+
+    it('removes entries from cache when matching object destroyed', () => {
+      const idToBeRemoved = findObjsResults[0].id;
+
+      triggerEvent(
+        'destroy:graphic',
+        mockValues.mockRequestResults.get(idToBeRemoved) as Roll20Object
+      );
+
+      const newSearchCacheIds = stateTracker.trackedSearches
+        .get(objSearchParamsKey)
+        ?.map((obj) => obj.id);
+
+      expect(newSearchCacheIds).not.toContain(idToBeRemoved);
+    });
+
+    it('adds new results to cache when object changed to match');
+
+    it('removes results when existing entry changed to not match');
+
+    it('removes entries from cache when matching object destroyed');
   });
 });
 
