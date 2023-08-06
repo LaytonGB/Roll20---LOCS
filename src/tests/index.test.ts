@@ -27,6 +27,18 @@ const findObjsSpy = jest
   .spyOn(global, 'findObjs')
   .mockImplementation(findObjsMock);
 
+// @ts-ignore
+global.filterObjs = () => {
+  return;
+};
+const filterObjsMock = jest.fn<
+  Roll20Object[],
+  [(obj: Roll20Object) => boolean]
+>(mockFunctions.filterObjs);
+const filterObjsSpy = jest
+  .spyOn(global, 'filterObjs')
+  .mockImplementation(filterObjsMock);
+
 const { triggerEvent, on } = mockFunctions.getOnFunctions();
 // @ts-ignore
 global.on = () => {

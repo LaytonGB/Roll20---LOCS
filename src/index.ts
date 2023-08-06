@@ -97,6 +97,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       Map<Roll20EventLabel, (eventDetails: any) => void>
     >();
     trackedSearches = new Map<string, Roll20Object[]>();
+    trackedFilters = new Map<(obj: Roll20Object) => boolean, Roll20Object[]>();
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
       function addResultIfMatches(obj: Roll20Object) {
@@ -133,6 +134,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       this.trackedSearches.set(cacheKey, newCacheValue);
 
       let eventsForThisSearch = this.trackedEvents.get(cacheKey);
+      // TODO is this needed?
       if (!eventsForThisSearch) {
         eventsForThisSearch = new Map();
         this.trackedEvents.set(cacheKey, eventsForThisSearch);
@@ -171,7 +173,15 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
     }
 
     filterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
-      return [];
+      const cachedResults = this.trackedFilters.get(callback);
+      if (cachedResults) {
+        return cachedResults;
+      }
+
+      const newCacheResults = filterObjs(callback);
+      this.trackedFilters.set(callback, newCacheResults);
+
+      return newCacheResults;
     }
 
     getAttrByName(
