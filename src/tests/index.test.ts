@@ -351,8 +351,22 @@ describe('filterObjs', () => {
     expect(resultsWith0Matches).toHaveLength(0);
   });
 
-  it.todo('caches previous searches');
-  it.todo('caches even when no results are found');
+  it('caches previous searches', () => {
+    const initialFilterObjsCalls = filterObjsSpy.mock.calls.length;
+    stateTracker.filterObjs(objSearchFilterFunc);
+    stateTracker.filterObjs(objSearchFilterFunc);
+
+    expect(filterObjsSpy).toHaveBeenCalledTimes(initialFilterObjsCalls + 1);
+  });
+
+  it('caches even when no results are found', () => {
+    const initialFilterObjsCalls = filterObjsSpy.mock.calls.length;
+    stateTracker.filterObjs(noResultsSearchFilterFunc);
+    stateTracker.filterObjs(noResultsSearchFilterFunc);
+
+    expect(filterObjsSpy).toHaveBeenCalledTimes(initialFilterObjsCalls + 1);
+  });
+
   describe('tracks updates to maintain find results', () => {
     it.todo('removes results when existing entry changed to not match');
     it.todo('adds new results to cache when object changed to match');
