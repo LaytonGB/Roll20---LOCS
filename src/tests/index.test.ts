@@ -176,7 +176,7 @@ describe('findObjs', () => {
   it('finds relevant items', () => {
     const foundObjects = stateTracker.findObjs(objSearchParams);
 
-    expect(foundObjects.length).toBe(2);
+    expect(foundObjects).toHaveLength(2);
 
     const foundObjectIds = foundObjects.map((obj) => obj.id);
     expect(foundObjectIds).toMatchObject(objSearchResultIds);
@@ -193,7 +193,7 @@ describe('findObjs', () => {
     stateTracker.findObjs(objSearchParams);
 
     expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
-    expect(stateTracker.trackedSearches.get(objSearchParamsKey)?.length).toBe(
+    expect(stateTracker.trackedSearches.get(objSearchParamsKey)).toHaveLength(
       2
     );
   });
@@ -230,8 +230,8 @@ describe('findObjs', () => {
       true
     );
     expect(
-      stateTracker.trackedSearches.get(noResultsSearchParamsKey)?.length
-    ).toBe(0);
+      stateTracker.trackedSearches.get(noResultsSearchParamsKey)
+    ).toHaveLength(0);
   });
 
   describe('tracks updates to maintain find results', () => {
