@@ -433,11 +433,30 @@ describe('filterObjs', () => {
       });
     });
 
-    it.todo('adds new results to cache when object changed to match');
+    it('adds new results to cache when object changed to match', () => {
+      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
+        return new MockRoll20Object(
+          objType,
+          `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
+          { test: false }
+        );
+      });
+
+      createdObjs.forEach((createdObj) => {
+        const initialFilterObjsResultsLength =
+          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+
+        createdObj.set('test', true);
+
+        triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+
+        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+          initialFilterObjsResultsLength - 1
+        );
+      });
+    });
 
     it.todo('removes results when existing entry changed to not match');
-
-    it.todo('removes entries from cache when matching object destroyed');
   });
 });
 
