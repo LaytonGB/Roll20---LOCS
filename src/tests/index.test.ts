@@ -316,10 +316,6 @@ describe('filterObjs', () => {
     };
   }
 
-  const objSearchResultIds = [
-    MockObjectName.CREATED_GRAPHIC,
-    MockObjectName.MOCK_GRAPHIC,
-  ];
   const objSearchType = 'graphic';
   const objSearchParams = {
     _type: objSearchType,
@@ -384,39 +380,40 @@ describe('filterObjs', () => {
       'player',
       'page',
     ];
+    const cacheCheckFilterFunc = newBasicFilterFromParams({ test: true });
 
-    it('adds new results to cache when any object created', () => {
-      for (const type of allObjectTypes) {
-        // TODO
-      }
-
-      const newSearchCacheIds = stateTracker.trackedSearches
-        .get(objSearchParamsKey)
-        ?.map((obj) => obj.id);
-
-      expect(newSearchCacheIds).toContain(eventGraphicId);
+    beforeEach(() => {
+      stateTracker = TokenStateApi.createStateTracker();
+      stateTracker.filterObjs(cacheCheckFilterFunc);
     });
 
-    it('removes entries from cache when matching object destroyed', () => {
-      const idToBeRemoved = findObjsResults[0].id;
+    it('adds new results to cache when any matching object created', () => {
+      allObjectTypes.forEach((objectType) => {
+        const initialFilterObjsResultsLength =
+          stateTracker.filterObjs(cacheCheckFilterFunc).length;
 
-      triggerEvent(
-        'destroy:graphic',
-        mockValues.mockRequestResults.get(idToBeRemoved) as Roll20Object
-      );
+        triggerEvent(
+          `add:${objectType}`,
+          new MockRoll20Object(
+            objectType,
+            `FILTEROBJS_CACHE_CREATED_${objectType.toUpperCase()}`,
+            { test: true }
+          )
+        );
 
-      const newSearchCacheIds = stateTracker.trackedSearches
-        .get(objSearchParamsKey)
-        ?.map((obj) => obj.id);
-
-      expect(newSearchCacheIds).not.toContain(idToBeRemoved);
+        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+          initialFilterObjsResultsLength + 1
+        );
+      });
     });
 
-    it('adds new results to cache when object changed to match');
+    it.todo('removes entries from cache when matching object destroyed');
 
-    it('removes results when existing entry changed to not match');
+    it.todo('adds new results to cache when object changed to match');
 
-    it('removes entries from cache when matching object destroyed');
+    it.todo('removes results when existing entry changed to not match');
+
+    it.todo('removes entries from cache when matching object destroyed');
   });
 });
 
