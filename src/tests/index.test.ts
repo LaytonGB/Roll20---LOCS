@@ -145,15 +145,6 @@ describe('object and property caching', () => {
 });
 
 describe('findObjs', () => {
-  function paramsIntoKey(params: { [param: string]: any }) {
-    return Object.entries(params)
-      .reduce(
-        (str, [parameter, searchValue]) => str + `&${parameter}=${searchValue}`,
-        ''
-      )
-      .slice(1);
-  }
-
   const objSearchResultIds = [
     MockObjectName.CREATED_GRAPHIC,
     MockObjectName.MOCK_GRAPHIC,
@@ -164,13 +155,11 @@ describe('findObjs', () => {
     _type: objSearchType,
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
-  const objSearchParamsKey = paramsIntoKey(objSearchParams);
 
   const noResultsSearchParams = {
     _type: 'page',
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
-  const noResultsSearchParamsKey = paramsIntoKey(noResultsSearchParams);
 
   let stateTracker: ILocs;
   beforeEach(() => {
@@ -482,10 +471,6 @@ describe('filterObjs', () => {
 
 // TODO condense tests using loops
 describe('getAttrByName and getAttrObjByName', () => {
-  function paramsIntoKey([character_id, attribute_name]: [string, string]) {
-    return `_type=attribute&_characterid=${character_id}&name=${attribute_name}`;
-  }
-
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
