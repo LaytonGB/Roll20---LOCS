@@ -214,8 +214,16 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
         });
 
         this.watchEvent(`change:${objType}`, (obj: Roll20Object) => {
-          if (callback(obj) && !newCacheResults.includes(obj)) {
-            newCacheResults.push(obj);
+          // TODO add a way for the system to get changed objects both pre and post change
+          if (callback(obj)) {
+            if (!newCacheResults.includes(obj)) {
+              newCacheResults.push(obj);
+            }
+          } else {
+            const foundObjIndex = newCacheResults.indexOf(obj);
+            if (foundObjIndex !== -1) {
+              newCacheResults.splice(foundObjIndex, 1);
+            }
           }
         });
       });
