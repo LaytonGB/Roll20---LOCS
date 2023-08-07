@@ -133,9 +133,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       const newCacheValue = roll20Result;
       this.trackedSearches.set(cacheKey, newCacheValue);
 
-      let eventsForThisSearch = this.trackedEvents.get(cacheKey);
-      // TODO is this needed?
-      eventsForThisSearch = new Map();
+      const eventsForThisSearch = new Map();
       this.trackedEvents.set(cacheKey, eventsForThisSearch);
 
       // TODO tidy these events

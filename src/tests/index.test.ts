@@ -315,7 +315,7 @@ describe('findObjs', () => {
       const initialFindObjsResultsLength =
         stateTracker.findObjs(objSearchParams).length;
 
-      createdObj.set('top', objSearchParams.top);
+      createdObj.set('top', 180);
       triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
       expect(stateTracker.findObjs(objSearchParams)).toHaveLength(
