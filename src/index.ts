@@ -212,6 +212,12 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
             }
           }
         });
+
+        this.watchEvent(`change:${objType}`, (obj: Roll20Object) => {
+          if (callback(obj) && !newCacheResults.includes(obj)) {
+            newCacheResults.push(obj);
+          }
+        });
       });
 
       return newCacheResults;

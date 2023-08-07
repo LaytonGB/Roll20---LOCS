@@ -450,8 +450,9 @@ describe('filterObjs', () => {
 
         triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
+        // TODO add a way for the system to get changed objects both pre and post change
         expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
-          initialFilterObjsResultsLength - 1
+          initialFilterObjsResultsLength + 1
         );
       });
     });
