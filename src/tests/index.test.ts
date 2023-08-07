@@ -450,14 +450,39 @@ describe('filterObjs', () => {
 
         triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
-        // TODO add a way for the system to get changed objects both pre and post change
         expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength + 1
         );
       });
     });
 
-    it.todo('removes results when existing entry changed to not match');
+    // TODO add a way for the system to get changed objects both pre and post change
+    it('removes results when existing entry changed to not match', () => {
+      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
+        return new MockRoll20Object(
+          objType,
+          `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
+          { test: true }
+        );
+      });
+
+      // fill filterObjs results with a result of each type
+      createdObjs.forEach((createdObj) => {
+        triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+      });
+
+      createdObjs.forEach((createdObj) => {
+        const initialFilterObjsResultsLength =
+          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+
+        createdObj.set('test', false);
+        triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+
+        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+          initialFilterObjsResultsLength - 1
+        );
+      });
+    });
   });
 });
 
