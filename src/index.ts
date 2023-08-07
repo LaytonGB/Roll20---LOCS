@@ -29,8 +29,6 @@ export interface IStateTracker {
   ) => Roll20Object | undefined;
 
   getObj: (type: ObjectType, id: Roll20Id) => Roll20Object | undefined;
-
-  removeTrackedSearch: (properties: { [property: string]: any }) => void;
 }
 
 // TODO add methods for all cache interactions (eg, removeSearchCache, removeObjCache, etc)
@@ -270,22 +268,6 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
         this.cacheObject(roll20Result);
       }
       return roll20Result;
-    }
-
-    // TODO add tests for this section
-    removeTrackedSearch(properties: { [property: string]: any }): void {
-      const searchKey = this.keyFromSearchArgs(properties);
-      this.trackedSearches.delete(searchKey);
-
-      const events = this.trackedEvents.get(searchKey);
-
-      if (events) {
-        for (const [eventLabel, callback] of events.entries()) {
-          this.stopWatchingEvent(eventLabel, callback);
-        }
-      }
-
-      this.trackedEvents.delete(searchKey);
     }
 
     private cacheObject(obj: Roll20Object): void {

@@ -323,22 +323,6 @@ describe('findObjs', () => {
       );
     });
   });
-
-  // TODO finish writing this test
-  it('allows cache removal', () => {
-    stateTracker.findObjs(objSearchParams);
-    const trackedEventsForSearch =
-      stateTracker.trackedEvents.get(objSearchParamsKey);
-
-    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
-    expect(trackedEventsForSearch?.has(`add:${objSearchType}`)).toBe(true);
-    expect(trackedEventsForSearch?.has(`change:${objSearchType}`)).toBe(true);
-    expect(trackedEventsForSearch?.has(`destroy:${objSearchType}`)).toBe(true);
-
-    stateTracker.removeTrackedSearch(objSearchParams);
-
-    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
-  });
 });
 
 describe('filterObjs', () => {
