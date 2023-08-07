@@ -285,9 +285,43 @@ describe('findObjs', () => {
       expect(newSearchCacheIds).not.toContain(idToBeRemoved);
     });
 
-    it.todo('removes results when existing entry changed to not match');
+    it('adds new results to cache when object changed to match', () => {
+      const createdObj: Roll20Object = new MockRoll20Object(
+        objSearchType,
+        `FINDOBJS_CACHE_CREATED_${objSearchType}`,
+        { top: 180 }
+      );
+      triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
 
-    it.todo('adds new results to cache when object changed to match');
+      const initialFindObjsResultsLength =
+        stateTracker.findObjs(objSearchParams).length;
+
+      createdObj.set('top', objSearchParams.top);
+      triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+
+      expect(stateTracker.findObjs(objSearchParams)).toHaveLength(
+        initialFindObjsResultsLength + 1
+      );
+    });
+
+    it('removes results when existing entry changed to not match', () => {
+      const createdObj: Roll20Object = new MockRoll20Object(
+        objSearchType,
+        `FINDOBJS_CACHE_CREATED_${objSearchType}`,
+        { top: objSearchParams.top }
+      );
+      triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+
+      const initialFindObjsResultsLength =
+        stateTracker.findObjs(objSearchParams).length;
+
+      createdObj.set('top', objSearchParams.top);
+      triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+
+      expect(stateTracker.findObjs(objSearchParams)).toHaveLength(
+        initialFindObjsResultsLength - 1
+      );
+    });
   });
 
   // TODO finish writing this test
@@ -456,7 +490,6 @@ describe('filterObjs', () => {
       });
     });
 
-    // TODO add a way for the system to get changed objects both pre and post change
     it('removes results when existing entry changed to not match', () => {
       const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
         return new MockRoll20Object(

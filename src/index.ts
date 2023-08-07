@@ -135,10 +135,8 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
 
       let eventsForThisSearch = this.trackedEvents.get(cacheKey);
       // TODO is this needed?
-      if (!eventsForThisSearch) {
-        eventsForThisSearch = new Map();
-        this.trackedEvents.set(cacheKey, eventsForThisSearch);
-      }
+      eventsForThisSearch = new Map();
+      this.trackedEvents.set(cacheKey, eventsForThisSearch);
 
       // TODO tidy these events
       eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
@@ -197,6 +195,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
         'page',
       ];
 
+      // TODO clean these somehow
       allObjectTypes.forEach((objType) => {
         this.watchEvent(`add:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
