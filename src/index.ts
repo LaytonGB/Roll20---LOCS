@@ -181,6 +181,30 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       const newCacheResults = filterObjs(callback);
       this.trackedFilters.set(callback, newCacheResults);
 
+      const allObjectTypes: ObjectType[] = [
+        'graphic',
+        'text',
+        'path',
+        'character',
+        'ability',
+        'attribute',
+        'handout',
+        'rollabletable',
+        'tableitem',
+        'macro',
+        'campaign',
+        'player',
+        'page',
+      ];
+
+      allObjectTypes.forEach((objType) => {
+        this.watchEvent(`add:${objType}`, (obj: Roll20Object) => {
+          if (callback(obj)) {
+            newCacheResults.push(obj);
+          }
+        });
+      });
+
       return newCacheResults;
     }
 
