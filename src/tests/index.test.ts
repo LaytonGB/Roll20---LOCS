@@ -62,12 +62,6 @@ describe('state constructor', () => {
 
     expect(stateTracker).toBeDefined();
   });
-
-  it('is empty on creation', () => {
-    const stateTracker = TokenStateApi.createStateTracker();
-
-    expect(stateTracker.cache.size).toBe(0);
-  });
 });
 
 describe('object fetching', () => {
@@ -104,10 +98,8 @@ describe('object and property caching', () => {
   it('caches fetched objects', () => {
     stateTracker.getObj(...getArgs);
 
-    expect(stateTracker.cache.size).toBe(1);
-    expect(stateTracker.cache.has(getArgsId)).toBe(true);
-
     const getObjCallCount = getObjSpy.mock.calls.length;
+
     stateTracker.getObj(...getArgs);
 
     expect(getObjSpy).toBeCalledTimes(getObjCallCount);
@@ -130,15 +122,13 @@ describe('object and property caching', () => {
 
     it('removes cache entries on destroy', () => {
       const cachedObject = stateTracker.getObj(...getArgs);
-
-      expect(
-        stateTracker.trackedEvents.get(getArgsId)?.get(`destroy:${getArgsType}`)
-      ).toBeDefined();
+      const getObjCallCount = getObjSpy.mock.calls.length;
 
       triggerEvent('destroy:graphic', cachedObject as Roll20Object);
 
-      expect(stateTracker.cache.get(getArgsId)).toBeUndefined();
-      expect(stateTracker.trackedEvents.get(getArgsId)).toBeUndefined();
+      stateTracker.getObj(...getArgs);
+
+      expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount + 1);
     });
 
     afterAll(() => {
@@ -200,50 +190,40 @@ describe('findObjs', () => {
   });
 
   it('caches previous searches', () => {
-    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(false);
+    stateTracker.findObjs(objSearchParams);
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
 
     stateTracker.findObjs(objSearchParams);
 
-    expect(stateTracker.trackedSearches.has(objSearchParamsKey)).toBe(true);
-    expect(stateTracker.trackedSearches.get(objSearchParamsKey)).toHaveLength(
-      2
-    );
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('still returns items if type is excluded', () => {
-    const objSearchParamsWithoutType = {
+    const searchParamsWithoutType = {
       top: mockValues.mockObjectConstants.mockGraphicTop,
     };
-    const objSearchParamsWithoutTypeKey = paramsIntoKey(
-      objSearchParamsWithoutType
+
+    const findWithoutTypeResults = stateTracker.findObjs(
+      searchParamsWithoutType
     );
 
-    expect(
-      stateTracker.trackedSearches.has(objSearchParamsWithoutTypeKey)
-    ).toBe(false);
+    expect(findWithoutTypeResults).toHaveLength(2);
 
-    expect(
-      stateTracker.findObjs(objSearchParamsWithoutType).length
-    ).toBeTruthy();
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
+    stateTracker.findObjs(searchParamsWithoutType);
 
-    expect(
-      stateTracker.trackedSearches.has(objSearchParamsWithoutTypeKey)
-    ).toBe(true);
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('caches even when no results are found', () => {
-    expect(stateTracker.trackedSearches.has(noResultsSearchParamsKey)).toBe(
-      false
-    );
+    const noResultsSearchResults = stateTracker.findObjs(noResultsSearchParams);
 
+    expect(noResultsSearchResults).toHaveLength(0);
+
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
     stateTracker.findObjs(noResultsSearchParams);
 
-    expect(stateTracker.trackedSearches.has(noResultsSearchParamsKey)).toBe(
-      true
-    );
-    expect(
-      stateTracker.trackedSearches.get(noResultsSearchParamsKey)
-    ).toHaveLength(0);
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   describe('tracks updates to maintain find results', () => {
@@ -256,33 +236,28 @@ describe('findObjs', () => {
     });
 
     it('adds new results to cache when matching object created', () => {
-      triggerEvent(
-        'add:graphic',
-        new MockRoll20Object('graphic', eventGraphicId, {
-          top: mockValues.mockObjectConstants.mockGraphicTop,
-        })
-      );
+      const newObject = new MockRoll20Object('graphic', eventGraphicId, {
+        top: mockValues.mockObjectConstants.mockGraphicTop,
+      });
 
-      const newSearchCacheIds = stateTracker.trackedSearches
-        .get(objSearchParamsKey)
-        ?.map((obj) => obj.id);
+      triggerEvent('add:graphic', newObject);
 
-      expect(newSearchCacheIds).toContain(eventGraphicId);
+      const newSearchResults = stateTracker.findObjs(objSearchParams);
+
+      expect(newSearchResults).toContain(newObject);
     });
 
     it('removes entries from cache when matching object destroyed', () => {
       const idToBeRemoved = findObjsResults[0].id;
+      const objToBeRemoved = mockValues.mockRequestResults.get(
+        idToBeRemoved
+      ) as Roll20Object;
 
-      triggerEvent(
-        'destroy:graphic',
-        mockValues.mockRequestResults.get(idToBeRemoved) as Roll20Object
-      );
+      triggerEvent('destroy:graphic', objToBeRemoved);
 
-      const newSearchCacheIds = stateTracker.trackedSearches
-        .get(objSearchParamsKey)
-        ?.map((obj) => obj.id);
+      const newSearchResults = stateTracker.findObjs(objSearchParams);
 
-      expect(newSearchCacheIds).not.toContain(idToBeRemoved);
+      expect(newSearchResults).not.toContain(objToBeRemoved);
     });
 
     it('adds new results to cache when object changed to match', () => {
@@ -518,68 +493,20 @@ describe('getAttrByName and getAttrObjByName', () => {
   });
 
   it('getAttrObjByName caches each search', () => {
-    const cacheKey = paramsIntoKey(getAttrArgs);
+    stateTracker.getAttrObjByName(...getAttrArgs);
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
     stateTracker.getAttrObjByName(...getAttrArgs);
 
-    expect(
-      stateTracker.trackedSearches.get(cacheKey)?.map((obj) => obj.id)
-    ).toContain(MockObjectName.MOCK_ATTRIBUTE);
-  });
-
-  it('getAttrObjByName uses cached values after first search', () => {
-    stateTracker.getAttrObjByName(...getAttrArgs);
-
-    const findObjsSpyCallCount = findObjsSpy.mock.calls.length;
-
-    stateTracker.getAttrObjByName(...getAttrArgs);
-
-    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsSpyCallCount);
-  });
-
-  it('getAttrObjByName adds events for each search', () => {
-    const cacheKey = paramsIntoKey(getAttrArgs);
-
-    expect(stateTracker.trackedEvents.has(cacheKey)).toBe(false);
-
-    stateTracker.getAttrObjByName(...getAttrArgs);
-
-    const trackedEvents = stateTracker.trackedEvents.get(cacheKey);
-    expect(trackedEvents).toBeDefined();
-    expect(trackedEvents?.has('add:attribute')).toBe(true);
-    expect(trackedEvents?.has('change:attribute')).toBe(true);
-    expect(trackedEvents?.has('destroy:attribute')).toBe(true); // fires if related character destroyed
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('getAttrByName caches each search', () => {
-    const cacheKey = paramsIntoKey(getAttrArgs);
+    stateTracker.getAttrByName(...getAttrArgs);
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
     stateTracker.getAttrByName(...getAttrArgs);
 
-    expect(
-      stateTracker.trackedSearches.get(cacheKey)?.map((obj) => obj.id)
-    ).toContain(MockObjectName.MOCK_ATTRIBUTE);
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
-  it('getAttrByName uses cached values after first search', () => {
-    stateTracker.getAttrByName(...getAttrArgs);
-
-    const findObjsSpyCallCount = findObjsSpy.mock.calls.length;
-
-    stateTracker.getAttrByName(...getAttrArgs);
-
-    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsSpyCallCount);
-  });
-
-  it('getAttrByName adds events for each search', () => {
-    const cacheKey = paramsIntoKey(getAttrArgs);
-
-    expect(stateTracker.trackedEvents.has(cacheKey)).toBe(false);
-
-    stateTracker.getAttrByName(...getAttrArgs);
-
-    const trackedEvents = stateTracker.trackedEvents.get(cacheKey);
-    expect(trackedEvents).toBeDefined();
-    expect(trackedEvents?.has('add:attribute')).toBe(true);
-    expect(trackedEvents?.has('change:attribute')).toBe(true);
-    expect(trackedEvents?.has('destroy:attribute')).toBe(true); // fires if related character destroyed
-  });
+  it.todo('event checks');
 });

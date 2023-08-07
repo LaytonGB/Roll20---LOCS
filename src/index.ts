@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-type Roll20Id = string;
+export type Roll20Id = string;
 export type Roll20EventLabel = string;
+export type SearchKey = string;
 
 export interface IStateTrackerFactory {
   createStateTracker: () => IStateTracker;
@@ -9,10 +10,6 @@ export interface IStateTrackerFactory {
 
 // this matches the property and method signatures of the StateTracker class
 export interface IStateTracker {
-  cache: Map<Roll20Id, Roll20Object>;
-  trackedEvents: Map<string, Map<string, (eventDetails: any) => void>>;
-  trackedSearches: Map<string, Roll20Object[]>;
-
   findObjs: (properties: { [property: string]: any }) => Roll20Object[];
 
   filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
@@ -31,7 +28,6 @@ export interface IStateTracker {
   getObj: (type: ObjectType, id: Roll20Id) => Roll20Object | undefined;
 }
 
-// TODO add methods for all cache interactions (eg, removeSearchCache, removeObjCache, etc)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const TokenStateApi: IStateTrackerFactory = (() => {
   class Roll20EventEmitter {
@@ -88,14 +84,15 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
   // TODO add createObj that instantly caches obj
   class StateTracker implements IStateTracker {
     private eventHandlers = new Map<Roll20EventLabel, Roll20EventEmitter>();
-
-    cache = new Map<Roll20Id, Roll20Object>();
-    trackedEvents = new Map<
-      string,
-      Map<Roll20EventLabel, (eventDetails: any) => void>
-    >();
-    trackedSearches = new Map<string, Roll20Object[]>();
-    trackedFilters = new Map<(obj: Roll20Object) => boolean, Roll20Object[]>();
+    private cache = {
+      objects: new Map<Roll20Id, Roll20Object>(),
+      events: new Map<
+        Roll20Id | SearchKey,
+        Map<Roll20EventLabel, (...eventDetails: Roll20Object[]) => void>
+      >(),
+      finds: new Map<SearchKey, Roll20Object[]>(),
+      filters: new Map<(obj: Roll20Object) => boolean, Roll20Object[]>(),
+    };
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
       function addResultIfMatches(obj: Roll20Object) {
@@ -120,7 +117,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       }
 
       const cacheKey = this.keyFromSearchArgs(properties);
-      const cacheResult = this.trackedSearches.get(cacheKey);
+      const cacheResult = this.cache.finds.get(cacheKey);
       if (cacheResult) {
         return cacheResult;
       }
@@ -129,10 +126,10 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       roll20Result.forEach((obj) => this.cacheObject(obj));
 
       const newCacheValue = roll20Result;
-      this.trackedSearches.set(cacheKey, newCacheValue);
+      this.cache.finds.set(cacheKey, newCacheValue);
 
       const eventsForThisSearch = new Map();
-      this.trackedEvents.set(cacheKey, eventsForThisSearch);
+      this.cache.events.set(cacheKey, eventsForThisSearch);
 
       // TODO tidy these events
       eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
@@ -167,13 +164,13 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
     }
 
     filterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
-      const cachedResults = this.trackedFilters.get(callback);
+      const cachedResults = this.cache.filters.get(callback);
       if (cachedResults) {
         return cachedResults;
       }
 
       const newCacheResults = filterObjs(callback);
-      this.trackedFilters.set(callback, newCacheResults);
+      this.cache.filters.set(callback, newCacheResults);
 
       const allObjectTypes: ObjectType[] = [
         'graphic',
@@ -258,7 +255,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
     }
 
     getObj(type: ObjectType, id: Roll20Id): Roll20Object | undefined {
-      const cacheResult = this.cache.get(id);
+      const cacheResult = this.cache.objects.get(id);
       if (cacheResult) {
         return cacheResult;
       }
@@ -271,15 +268,15 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
     }
 
     private cacheObject(obj: Roll20Object): void {
-      this.cache.set(obj.id, obj);
-      if (!this.trackedEvents.has(obj.id)) {
+      this.cache.objects.set(obj.id, obj);
+      if (!this.cache.events.has(obj.id)) {
         const events = new Map<Roll20EventLabel, (obj: Roll20Object) => void>();
-        this.trackedEvents.set(obj.id, events);
+        this.cache.events.set(obj.id, events);
 
         const destroyEventLabel = `destroy:${obj.get('_type')}`;
         const destroyCallback = () => {
-          this.cache.delete(obj.id);
-          this.trackedEvents.delete(obj.id);
+          this.cache.objects.delete(obj.id);
+          this.cache.events.delete(obj.id);
           // TODO on destroy this callback should stop listening
         };
         events.set(destroyEventLabel, destroyCallback);
