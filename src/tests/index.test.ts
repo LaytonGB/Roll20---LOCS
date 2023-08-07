@@ -388,15 +388,15 @@ describe('filterObjs', () => {
     });
 
     it('adds new results to cache when any matching object created', () => {
-      allObjectTypes.forEach((objectType) => {
+      allObjectTypes.forEach((objType) => {
         const initialFilterObjsResultsLength =
           stateTracker.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
-          `add:${objectType}`,
+          `add:${objType}`,
           new MockRoll20Object(
-            objectType,
-            `FILTEROBJS_CACHE_CREATED_${objectType.toUpperCase()}`,
+            objType,
+            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
             { test: true }
           )
         );
@@ -407,7 +407,31 @@ describe('filterObjs', () => {
       });
     });
 
-    it.todo('removes entries from cache when matching object destroyed');
+    it('removes entries from cache when matching object destroyed', () => {
+      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
+        return new MockRoll20Object(
+          objType,
+          `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
+          { test: true }
+        );
+      });
+
+      // fill filterObjs results with a result of each type
+      createdObjs.forEach((createdObj) => {
+        triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+      });
+
+      createdObjs.forEach((createdObj) => {
+        const initialFilterObjsResultsLength =
+          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+
+        triggerEvent(`destroy:${createdObj.get('_type')}`, createdObj);
+
+        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+          initialFilterObjsResultsLength - 1
+        );
+      });
+    });
 
     it.todo('adds new results to cache when object changed to match');
 
