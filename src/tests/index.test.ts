@@ -4,7 +4,7 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import { IStateTracker, Roll20EventLabel, TokenStateApi } from '..';
+import { ILocs, Roll20EventLabel, Locs } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
@@ -56,9 +56,11 @@ global.log = () => {
 const logMock = jest.fn<void, [string]>(mockFunctions.log);
 /* const logSpy = */ jest.spyOn(global, 'log').mockImplementation(logMock);
 
+it.todo('test all destroy events remove related event callbacks');
+
 describe('state constructor', () => {
   it('can be created with no input', () => {
-    const stateTracker = TokenStateApi.createStateTracker();
+    const stateTracker = Locs.createStateTracker();
 
     expect(stateTracker).toBeDefined();
   });
@@ -69,9 +71,9 @@ describe('object fetching', () => {
   const getArgsId = MockObjectName.MOCK_PLAYER;
   const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-  let stateTracker: IStateTracker;
+  let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = TokenStateApi.createStateTracker();
+    stateTracker = Locs.createStateTracker();
   });
 
   it('makes calls for uncached values to roll20', () => {
@@ -90,9 +92,9 @@ describe('object and property caching', () => {
   const getArgsId = MockObjectName.MOCK_GRAPHIC;
   const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-  let stateTracker: IStateTracker;
+  let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = TokenStateApi.createStateTracker();
+    stateTracker = Locs.createStateTracker();
   });
 
   it('caches fetched objects', () => {
@@ -107,7 +109,7 @@ describe('object and property caching', () => {
 
   describe('events', () => {
     beforeEach(() => {
-      stateTracker = TokenStateApi.createStateTracker();
+      stateTracker = Locs.createStateTracker();
     });
 
     it('cached objects update when fetched objects are changed', () => {
@@ -132,7 +134,7 @@ describe('object and property caching', () => {
     });
 
     afterAll(() => {
-      stateTracker = TokenStateApi.createStateTracker();
+      stateTracker = Locs.createStateTracker();
       const stateTrackerResult = stateTracker.getObj(...getArgs);
       stateTrackerResult?.set(
         'top',
@@ -170,9 +172,9 @@ describe('findObjs', () => {
   };
   const noResultsSearchParamsKey = paramsIntoKey(noResultsSearchParams);
 
-  let stateTracker: IStateTracker;
+  let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = TokenStateApi.createStateTracker();
+    stateTracker = Locs.createStateTracker();
   });
 
   it('finds relevant items', () => {
@@ -231,7 +233,7 @@ describe('findObjs', () => {
 
     let findObjsResults: Roll20Object[];
     beforeEach(() => {
-      stateTracker = TokenStateApi.createStateTracker();
+      stateTracker = Locs.createStateTracker();
       findObjsResults = stateTracker.findObjs(objSearchParams);
     });
 
@@ -324,9 +326,9 @@ describe('filterObjs', () => {
     noResultsSearchParams
   );
 
-  let stateTracker: IStateTracker;
+  let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = TokenStateApi.createStateTracker();
+    stateTracker = Locs.createStateTracker();
   });
 
   it('finds relevant items', () => {
@@ -376,7 +378,7 @@ describe('filterObjs', () => {
     const cacheCheckFilterFunc = newBasicFilterFromParams({ test: true });
 
     beforeEach(() => {
-      stateTracker = TokenStateApi.createStateTracker();
+      stateTracker = Locs.createStateTracker();
       stateTracker.filterObjs(cacheCheckFilterFunc);
     });
 
@@ -487,9 +489,9 @@ describe('getAttrByName and getAttrObjByName', () => {
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
-  let stateTracker: IStateTracker;
+  let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = TokenStateApi.createStateTracker();
+    stateTracker = Locs.createStateTracker();
   });
 
   it('getAttrObjByName caches each search', () => {

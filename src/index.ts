@@ -4,12 +4,12 @@ export type Roll20Id = string;
 export type Roll20EventLabel = string;
 export type SearchKey = string;
 
-export interface IStateTrackerFactory {
-  createStateTracker: () => IStateTracker;
+export interface ILocsFactory {
+  createStateTracker: () => ILocs;
 }
 
 // this matches the property and method signatures of the StateTracker class
-export interface IStateTracker {
+export interface ILocs {
   findObjs: (properties: { [property: string]: any }) => Roll20Object[];
 
   filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
@@ -29,8 +29,8 @@ export interface IStateTracker {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const TokenStateApi: IStateTrackerFactory = (() => {
-  class Roll20EventEmitter {
+export const Locs: ILocsFactory = (() => {
+  class EventHandler {
     private subscribers: [(obj: Roll20Object) => void, boolean][] = [];
 
     label: Roll20EventLabel;
@@ -82,8 +82,8 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
   }
 
   // TODO add createObj that instantly caches obj
-  class StateTracker implements IStateTracker {
-    private eventHandlers = new Map<Roll20EventLabel, Roll20EventEmitter>();
+  class StateTracker implements ILocs {
+    private eventHandlers = new Map<Roll20EventLabel, EventHandler>();
     private cache = {
       objects: new Map<Roll20Id, Roll20Object>(),
       events: new Map<
@@ -172,6 +172,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       const newCacheResults = filterObjs(callback);
       this.cache.filters.set(callback, newCacheResults);
 
+      // TODO store this somewhere better
       const allObjectTypes: ObjectType[] = [
         'graphic',
         'text',
@@ -284,10 +285,10 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
       }
     }
 
-    private getOrCreateEvent(eventLabel: Roll20EventLabel): Roll20EventEmitter {
+    private getOrCreateEvent(eventLabel: Roll20EventLabel): EventHandler {
       let event = this.eventHandlers.get(eventLabel);
       if (!event) {
-        event = new Roll20EventEmitter(eventLabel);
+        event = new EventHandler(eventLabel);
         this.eventHandlers.set(eventLabel, event);
       }
       return event;
@@ -301,6 +302,7 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
         .join('&');
     }
 
+    // TODO use this where needed
     private stopWatchingEvent(
       eventLabel: Roll20EventLabel,
       callback: (obj: Roll20Object) => void
