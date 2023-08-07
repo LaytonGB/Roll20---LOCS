@@ -203,6 +203,15 @@ export const TokenStateApi: IStateTrackerFactory = (() => {
             newCacheResults.push(obj);
           }
         });
+
+        this.watchEvent(`destroy:${objType}`, (obj: Roll20Object) => {
+          if (callback(obj)) {
+            const foundObjIndex = newCacheResults.indexOf(obj);
+            if (foundObjIndex !== -1) {
+              newCacheResults.splice(foundObjIndex, 1);
+            }
+          }
+        });
       });
 
       return newCacheResults;
