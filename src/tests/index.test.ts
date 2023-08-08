@@ -69,8 +69,6 @@ global.log = () => {
 const logMock = jest.fn<void, [string]>(mockFunctions.log);
 /* const logSpy = */ jest.spyOn(global, 'log').mockImplementation(logMock);
 
-it.todo('test all destroy events remove related event callbacks');
-
 describe('state constructor', () => {
   it('can be created with no input', () => {
     const locs = Locs.new();
