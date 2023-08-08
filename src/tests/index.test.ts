@@ -8,6 +8,19 @@ import { ILocs, Roll20EventLabel, Locs } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
+global.createObj = () => {
+  return;
+};
+const createObjMock = jest.fn<
+  Roll20Object | undefined,
+  [ObjectType, { [property: string]: any }]
+>(mockFunctions.createObj);
+const createObjSpy = jest
+  .spyOn(global, 'createObj')
+  // @ts-ignore CreateObj overload causing bad-selection error
+  .mockImplementation(createObjMock);
+
+// @ts-ignore
 global.getObj = () => {
   return;
 };
@@ -60,7 +73,7 @@ it.todo('test all destroy events remove related event callbacks');
 
 describe('state constructor', () => {
   it('can be created with no input', () => {
-    const stateTracker = Locs.createStateTracker();
+    const stateTracker = Locs.new();
 
     expect(stateTracker).toBeDefined();
   });
@@ -73,7 +86,7 @@ describe('object fetching', () => {
 
   let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.createStateTracker();
+    stateTracker = Locs.new();
   });
 
   it('makes calls for uncached values to roll20', () => {
@@ -94,7 +107,7 @@ describe('object and property caching', () => {
 
   let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.createStateTracker();
+    stateTracker = Locs.new();
   });
 
   it('caches fetched objects', () => {
@@ -109,7 +122,7 @@ describe('object and property caching', () => {
 
   describe('events', () => {
     beforeEach(() => {
-      stateTracker = Locs.createStateTracker();
+      stateTracker = Locs.new();
     });
 
     it('cached objects update when fetched objects are changed', () => {
@@ -134,13 +147,45 @@ describe('object and property caching', () => {
     });
 
     afterAll(() => {
-      stateTracker = Locs.createStateTracker();
+      stateTracker = Locs.new();
       const stateTrackerResult = stateTracker.getObj(...getArgs);
       stateTrackerResult?.set(
         'top',
         mockValues.mockObjectConstants.mockGraphicTop
       );
     });
+  });
+});
+
+describe('createObj', () => {
+  const newObjType = 'graphic';
+  const newObjParams = {
+    top: mockValues.mockObjectConstants.mockGraphicTop,
+  };
+
+  let locs: ILocs;
+  beforeEach(() => {
+    locs = Locs.new();
+  });
+
+  it('creates an object that is immediately cached', () => {
+    const newObject = locs.createObj(newObjType, newObjParams);
+    if (!newObject) {
+      throw new Error('Failed to create object');
+    }
+
+    const newObjId = newObject.id;
+    const getObjCallCount = getObjSpy.mock.calls.length;
+    locs.getObj(newObjType, newObjId);
+
+    expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount);
+  });
+
+  it('triggers the roll20 add events', () => {
+    const createObjCallCount = createObjSpy.mock.calls.length;
+    locs.createObj(newObjType, newObjParams);
+
+    expect(createObjSpy).toHaveBeenCalledTimes(createObjCallCount + 1);
   });
 });
 
@@ -163,7 +208,7 @@ describe('findObjs', () => {
 
   let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.createStateTracker();
+    stateTracker = Locs.new();
   });
 
   it('finds relevant items', () => {
@@ -222,7 +267,7 @@ describe('findObjs', () => {
 
     let findObjsResults: Roll20Object[];
     beforeEach(() => {
-      stateTracker = Locs.createStateTracker();
+      stateTracker = Locs.new();
       findObjsResults = stateTracker.findObjs(objSearchParams);
     });
 
@@ -317,7 +362,7 @@ describe('filterObjs', () => {
 
   let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.createStateTracker();
+    stateTracker = Locs.new();
   });
 
   it('finds relevant items', () => {
@@ -367,7 +412,7 @@ describe('filterObjs', () => {
     const cacheCheckFilterFunc = newBasicFilterFromParams({ test: true });
 
     beforeEach(() => {
-      stateTracker = Locs.createStateTracker();
+      stateTracker = Locs.new();
       stateTracker.filterObjs(cacheCheckFilterFunc);
     });
 
@@ -475,7 +520,7 @@ describe('getAttrByName and getAttrObjByName', () => {
 
   let stateTracker: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.createStateTracker();
+    stateTracker = Locs.new();
   });
 
   it('getAttrObjByName caches each search', () => {

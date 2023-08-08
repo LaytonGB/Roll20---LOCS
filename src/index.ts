@@ -5,11 +5,16 @@ export type Roll20EventLabel = string;
 export type SearchKey = string;
 
 export interface ILocsFactory {
-  createStateTracker: () => ILocs;
+  new: () => ILocs;
 }
 
 // this matches the property and method signatures of the StateTracker class
 export interface ILocs {
+  createObj: (
+    type: ObjectType,
+    properties: { [property: string]: any }
+  ) => Roll20Object | undefined;
+
   findObjs: (properties: { [property: string]: any }) => Roll20Object[];
 
   filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
@@ -81,8 +86,7 @@ export const Locs: ILocsFactory = (() => {
     }
   }
 
-  // TODO add createObj that instantly caches obj
-  class StateTracker implements ILocs {
+  class Locs implements ILocs {
     private eventHandlers = new Map<Roll20EventLabel, EventHandler>();
     private cache = {
       objects: new Map<Roll20Id, Roll20Object>(),
@@ -93,6 +97,18 @@ export const Locs: ILocsFactory = (() => {
       finds: new Map<SearchKey, Roll20Object[]>(),
       filters: new Map<(obj: Roll20Object) => boolean, Roll20Object[]>(),
     };
+
+    createObj(
+      type: ObjectType,
+      properties: { [property: string]: any }
+    ): Roll20Object | undefined {
+      // @ts-ignore not assignable error because of roll20 types
+      const newObject = createObj(type, properties);
+      if (newObject) {
+        this.cacheObject(newObject);
+        return newObject;
+      }
+    }
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
       function addResultIfMatches(obj: Roll20Object) {
@@ -328,6 +344,6 @@ export const Locs: ILocsFactory = (() => {
   }
 
   return {
-    createStateTracker: () => new StateTracker(),
+    new: () => new Locs(),
   };
 })();
