@@ -15,7 +15,7 @@ function createObj(
 }
 
 function filterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
-  const filteredObjects = [];
+  const filteredObjects: Roll20Object[] = [];
   const allObjects = mockValues.mockRequestResults.values();
   for (const currentObject of allObjects) {
     if (callback(currentObject)) {
@@ -29,13 +29,16 @@ function findObjs(
   properties: { [property: string]: any },
   options?: FindObjectOptions
 ): Roll20Object[] {
-  // TODO use options to search case-insensetive with string values
-  const filteredObjects = [];
+  const filteredObjects: Roll20Object[] = [];
   const allObjects = mockValues.mockRequestResults.values();
+  const checkFunc = options?.caseInsensitive
+    ? (a: any, b: any) =>
+        typeof a === 'string' ? a.toLowerCase() === b.toLowerCase() : a === b
+    : (a: any, b: any) => a === b;
   outer: for (const currentObject of allObjects) {
     for (const [property, searchValue] of Object.entries(properties)) {
       const currentValue = currentObject.get(property);
-      if (currentValue !== searchValue) {
+      if (!checkFunc(currentValue, searchValue)) {
         continue outer;
       }
     }

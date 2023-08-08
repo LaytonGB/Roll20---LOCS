@@ -469,7 +469,6 @@ describe('filterObjs', () => {
   });
 });
 
-// TODO condense tests using loops
 describe('getAttrByName and getAttrObjByName', () => {
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];

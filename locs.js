@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-// TODO add methods for all cache interactions (eg, removeSearchCache, removeObjCache, etc)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TokenStateApi = (() => {
-    class Roll20EventEmitter {
+const Locs = (() => {
+    class EventHandler {
         constructor(roll20EventLabel) {
             this.subscribers = [];
             this.label = roll20EventLabel;
@@ -40,9 +39,12 @@ const TokenStateApi = (() => {
     class StateTracker {
         constructor() {
             this.eventHandlers = new Map();
-            this.cache = new Map();
-            this.trackedEvents = new Map();
-            this.trackedSearches = new Map();
+            this.cache = {
+                objects: new Map(),
+                events: new Map(),
+                finds: new Map(),
+                filters: new Map(),
+            };
         }
         findObjs(properties) {
             function addResultIfMatches(obj) {
@@ -62,19 +64,16 @@ const TokenStateApi = (() => {
                 }
             }
             const cacheKey = this.keyFromSearchArgs(properties);
-            const cacheResult = this.trackedSearches.get(cacheKey);
+            const cacheResult = this.cache.finds.get(cacheKey);
             if (cacheResult) {
                 return cacheResult;
             }
             const roll20Result = findObjs(properties);
             roll20Result.forEach((obj) => this.cacheObject(obj));
             const newCacheValue = roll20Result;
-            this.trackedSearches.set(cacheKey, newCacheValue);
-            let eventsForThisSearch = this.trackedEvents.get(cacheKey);
-            if (!eventsForThisSearch) {
-                eventsForThisSearch = new Map();
-                this.trackedEvents.set(cacheKey, eventsForThisSearch);
-            }
+            this.cache.finds.set(cacheKey, newCacheValue);
+            const eventsForThisSearch = new Map();
+            this.cache.events.set(cacheKey, eventsForThisSearch);
             // TODO tidy these events
             eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
             eventsForThisSearch.set(`change:${properties._type}`, (obj) => {
@@ -96,6 +95,61 @@ const TokenStateApi = (() => {
                 this.watchEvent(eventLabel, callback);
             }
             return roll20Result;
+        }
+        filterObjs(callback) {
+            const cachedResults = this.cache.filters.get(callback);
+            if (cachedResults) {
+                return cachedResults;
+            }
+            const newCacheResults = filterObjs(callback);
+            this.cache.filters.set(callback, newCacheResults);
+            // TODO store this somewhere better
+            const allObjectTypes = [
+                'graphic',
+                'text',
+                'path',
+                'character',
+                'ability',
+                'attribute',
+                'handout',
+                'rollabletable',
+                'tableitem',
+                'macro',
+                'campaign',
+                'player',
+                'page',
+            ];
+            // TODO clean these somehow
+            allObjectTypes.forEach((objType) => {
+                this.watchEvent(`add:${objType}`, (obj) => {
+                    if (callback(obj)) {
+                        newCacheResults.push(obj);
+                    }
+                });
+                this.watchEvent(`destroy:${objType}`, (obj) => {
+                    if (callback(obj)) {
+                        const foundObjIndex = newCacheResults.indexOf(obj);
+                        if (foundObjIndex !== -1) {
+                            newCacheResults.splice(foundObjIndex, 1);
+                        }
+                    }
+                });
+                this.watchEvent(`change:${objType}`, (obj) => {
+                    // TODO add a way for the system to get changed objects both pre and post change
+                    if (callback(obj)) {
+                        if (!newCacheResults.includes(obj)) {
+                            newCacheResults.push(obj);
+                        }
+                    }
+                    else {
+                        const foundObjIndex = newCacheResults.indexOf(obj);
+                        if (foundObjIndex !== -1) {
+                            newCacheResults.splice(foundObjIndex, 1);
+                        }
+                    }
+                });
+            });
+            return newCacheResults;
         }
         getAttrByName(character_id, attribute_name, value_type = 'current') {
             const attrObj = this.getAttrObjByName(character_id, attribute_name);
@@ -119,7 +173,7 @@ const TokenStateApi = (() => {
             }
         }
         getObj(type, id) {
-            const cacheResult = this.cache.get(id);
+            const cacheResult = this.cache.objects.get(id);
             if (cacheResult) {
                 return cacheResult;
             }
@@ -129,27 +183,15 @@ const TokenStateApi = (() => {
             }
             return roll20Result;
         }
-        // TODO add tests for this section
-        removeTrackedSearch(properties) {
-            const searchKey = this.keyFromSearchArgs(properties);
-            this.trackedSearches.delete(searchKey);
-            const events = this.trackedEvents.get(searchKey);
-            if (events) {
-                for (const [eventLabel, callback] of events.entries()) {
-                    this.stopWatchingEvent(eventLabel, callback);
-                }
-            }
-            this.trackedEvents.delete(searchKey);
-        }
         cacheObject(obj) {
-            this.cache.set(obj.id, obj);
-            if (!this.trackedEvents.has(obj.id)) {
+            this.cache.objects.set(obj.id, obj);
+            if (!this.cache.events.has(obj.id)) {
                 const events = new Map();
-                this.trackedEvents.set(obj.id, events);
+                this.cache.events.set(obj.id, events);
                 const destroyEventLabel = `destroy:${obj.get('_type')}`;
                 const destroyCallback = () => {
-                    this.cache.delete(obj.id);
-                    this.trackedEvents.delete(obj.id);
+                    this.cache.objects.delete(obj.id);
+                    this.cache.events.delete(obj.id);
                     // TODO on destroy this callback should stop listening
                 };
                 events.set(destroyEventLabel, destroyCallback);
@@ -159,7 +201,7 @@ const TokenStateApi = (() => {
         getOrCreateEvent(eventLabel) {
             let event = this.eventHandlers.get(eventLabel);
             if (!event) {
-                event = new Roll20EventEmitter(eventLabel);
+                event = new EventHandler(eventLabel);
                 this.eventHandlers.set(eventLabel, event);
             }
             return event;
@@ -169,6 +211,7 @@ const TokenStateApi = (() => {
                 .map(([key, value]) => `${key}=${value}`)
                 .join('&');
         }
+        // TODO use this where needed
         stopWatchingEvent(eventLabel, callback) {
             var _a;
             (_a = this.eventHandlers.get(eventLabel)) === null || _a === void 0 ? void 0 : _a.unsubscribe(callback);
