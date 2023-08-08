@@ -533,18 +533,11 @@ describe('getAttrByName and getAttrObjByName', () => {
   });
 
   it('event checks', () => {
-    locs.getAttrObjByName(...getAttrArgs);
+    const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
+    getAttrResult?.set('name', 'new_name');
+    triggerEvent('change:attribute', getAttrResult);
 
-    const newAttribute = new MockRoll20Object(
-      'attribute',
-      'created_test_attribute',
-      {
-        _characterid: getAttrCharacterId,
-        name: 'test_attr_name',
-      }
-    );
-    triggerEvent('add:attribute', newAttribute);
-
-    expect(locs.getAttrObjByName(...getAttrArgs)).toContain(newAttribute);
+    const newGetAttrResult = locs.getAttrObjByName(...getAttrArgs);
+    expect(newGetAttrResult).toBeUndefined();
   });
 });
