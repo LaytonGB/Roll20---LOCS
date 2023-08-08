@@ -294,7 +294,6 @@ export const Locs: ILocsFactory = (() => {
         const destroyCallback = () => {
           this.cache.objects.delete(obj.id);
           this.cache.events.delete(obj.id);
-          // TODO on destroy this callback should stop listening
         };
         events.set(destroyEventLabel, destroyCallback);
         this.watchEventOnce(destroyEventLabel, destroyCallback);
@@ -316,14 +315,6 @@ export const Locs: ILocsFactory = (() => {
       return Object.entries(parameters)
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
-    }
-
-    // TODO use this where needed
-    private stopWatchingEvent(
-      eventLabel: Roll20EventLabel,
-      callback: (obj: Roll20Object) => void
-    ): void {
-      this.eventHandlers.get(eventLabel)?.unsubscribe(callback);
     }
 
     private watchEvent(
