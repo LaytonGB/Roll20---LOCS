@@ -73,9 +73,9 @@ it.todo('test all destroy events remove related event callbacks');
 
 describe('state constructor', () => {
   it('can be created with no input', () => {
-    const stateTracker = Locs.new();
+    const locs = Locs.new();
 
-    expect(stateTracker).toBeDefined();
+    expect(locs).toBeDefined();
   });
 });
 
@@ -84,15 +84,15 @@ describe('object fetching', () => {
   const getArgsId = MockObjectName.MOCK_PLAYER;
   const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-  let stateTracker: ILocs;
+  let locs: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.new();
+    locs = Locs.new();
   });
 
   it('makes calls for uncached values to roll20', () => {
     expect(getObjSpy).not.toHaveBeenCalled();
 
-    const fetchedCharacter = stateTracker.getObj(...getArgs);
+    const fetchedCharacter = locs.getObj(...getArgs);
 
     expect(fetchedCharacter).toBeDefined();
     expect(typeof fetchedCharacter?.id).toBe('string');
@@ -105,30 +105,30 @@ describe('object and property caching', () => {
   const getArgsId = MockObjectName.MOCK_GRAPHIC;
   const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-  let stateTracker: ILocs;
+  let locs: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.new();
+    locs = Locs.new();
   });
 
   it('caches fetched objects', () => {
-    stateTracker.getObj(...getArgs);
+    locs.getObj(...getArgs);
 
     const getObjCallCount = getObjSpy.mock.calls.length;
 
-    stateTracker.getObj(...getArgs);
+    locs.getObj(...getArgs);
 
     expect(getObjSpy).toBeCalledTimes(getObjCallCount);
   });
 
   describe('events', () => {
     beforeEach(() => {
-      stateTracker = Locs.new();
+      locs = Locs.new();
     });
 
     it('cached objects update when fetched objects are changed', () => {
       const newTopValue = 15;
 
-      const cachedObject = stateTracker.getObj(...getArgs);
+      const cachedObject = locs.getObj(...getArgs);
       const fetchedObject = getObj(...getArgs);
       fetchedObject?.set('top', newTopValue);
 
@@ -136,23 +136,20 @@ describe('object and property caching', () => {
     });
 
     it('removes cache entries on destroy', () => {
-      const cachedObject = stateTracker.getObj(...getArgs);
+      const cachedObject = locs.getObj(...getArgs);
       const getObjCallCount = getObjSpy.mock.calls.length;
 
       triggerEvent('destroy:graphic', cachedObject as Roll20Object);
 
-      stateTracker.getObj(...getArgs);
+      locs.getObj(...getArgs);
 
       expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount + 1);
     });
 
     afterAll(() => {
-      stateTracker = Locs.new();
-      const stateTrackerResult = stateTracker.getObj(...getArgs);
-      stateTrackerResult?.set(
-        'top',
-        mockValues.mockObjectConstants.mockGraphicTop
-      );
+      locs = Locs.new();
+      const locsResult = locs.getObj(...getArgs);
+      locsResult?.set('top', mockValues.mockObjectConstants.mockGraphicTop);
     });
   });
 });
@@ -206,30 +203,30 @@ describe('findObjs', () => {
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
 
-  let stateTracker: ILocs;
+  let locs: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.new();
+    locs = Locs.new();
   });
 
   it('finds relevant items', () => {
-    const foundObjects = stateTracker.findObjs(objSearchParams);
+    const foundObjects = locs.findObjs(objSearchParams);
 
     expect(foundObjects).toHaveLength(2);
 
     const foundObjectIds = foundObjects.map((obj) => obj.id);
     expect(foundObjectIds).toMatchObject(objSearchResultIds);
 
-    const cachedSearchObjects = stateTracker.findObjs(objSearchParams);
+    const cachedSearchObjects = locs.findObjs(objSearchParams);
     const cachedObjectIds = cachedSearchObjects.map((obj) => obj.id);
 
     expect(cachedObjectIds).toMatchObject(objSearchResultIds);
   });
 
   it('caches previous searches', () => {
-    stateTracker.findObjs(objSearchParams);
+    locs.findObjs(objSearchParams);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
 
-    stateTracker.findObjs(objSearchParams);
+    locs.findObjs(objSearchParams);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
@@ -239,25 +236,23 @@ describe('findObjs', () => {
       top: mockValues.mockObjectConstants.mockGraphicTop,
     };
 
-    const findWithoutTypeResults = stateTracker.findObjs(
-      searchParamsWithoutType
-    );
+    const findWithoutTypeResults = locs.findObjs(searchParamsWithoutType);
 
     expect(findWithoutTypeResults).toHaveLength(2);
 
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    stateTracker.findObjs(searchParamsWithoutType);
+    locs.findObjs(searchParamsWithoutType);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('caches even when no results are found', () => {
-    const noResultsSearchResults = stateTracker.findObjs(noResultsSearchParams);
+    const noResultsSearchResults = locs.findObjs(noResultsSearchParams);
 
     expect(noResultsSearchResults).toHaveLength(0);
 
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    stateTracker.findObjs(noResultsSearchParams);
+    locs.findObjs(noResultsSearchParams);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
@@ -267,8 +262,8 @@ describe('findObjs', () => {
 
     let findObjsResults: Roll20Object[];
     beforeEach(() => {
-      stateTracker = Locs.new();
-      findObjsResults = stateTracker.findObjs(objSearchParams);
+      locs = Locs.new();
+      findObjsResults = locs.findObjs(objSearchParams);
     });
 
     it('adds new results to cache when matching object created', () => {
@@ -278,7 +273,7 @@ describe('findObjs', () => {
 
       triggerEvent('add:graphic', newObject);
 
-      const newSearchResults = stateTracker.findObjs(objSearchParams);
+      const newSearchResults = locs.findObjs(objSearchParams);
 
       expect(newSearchResults).toContain(newObject);
     });
@@ -291,7 +286,7 @@ describe('findObjs', () => {
 
       triggerEvent('destroy:graphic', objToBeRemoved);
 
-      const newSearchResults = stateTracker.findObjs(objSearchParams);
+      const newSearchResults = locs.findObjs(objSearchParams);
 
       expect(newSearchResults).not.toContain(objToBeRemoved);
     });
@@ -305,12 +300,12 @@ describe('findObjs', () => {
       triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
 
       const initialFindObjsResultsLength =
-        stateTracker.findObjs(objSearchParams).length;
+        locs.findObjs(objSearchParams).length;
 
       createdObj.set('top', objSearchParams.top);
       triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
-      expect(stateTracker.findObjs(objSearchParams)).toHaveLength(
+      expect(locs.findObjs(objSearchParams)).toHaveLength(
         initialFindObjsResultsLength + 1
       );
     });
@@ -324,12 +319,12 @@ describe('findObjs', () => {
       triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
 
       const initialFindObjsResultsLength =
-        stateTracker.findObjs(objSearchParams).length;
+        locs.findObjs(objSearchParams).length;
 
       createdObj.set('top', 180);
       triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
-      expect(stateTracker.findObjs(objSearchParams)).toHaveLength(
+      expect(locs.findObjs(objSearchParams)).toHaveLength(
         initialFindObjsResultsLength - 1
       );
     });
@@ -360,35 +355,33 @@ describe('filterObjs', () => {
     noResultsSearchParams
   );
 
-  let stateTracker: ILocs;
+  let locs: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.new();
+    locs = Locs.new();
   });
 
   it('finds relevant items', () => {
-    const resultsWith2Matches = stateTracker.filterObjs(objSearchFilterFunc);
+    const resultsWith2Matches = locs.filterObjs(objSearchFilterFunc);
 
     expect(resultsWith2Matches).toHaveLength(2);
 
-    const resultsWith0Matches = stateTracker.filterObjs(
-      noResultsSearchFilterFunc
-    );
+    const resultsWith0Matches = locs.filterObjs(noResultsSearchFilterFunc);
 
     expect(resultsWith0Matches).toHaveLength(0);
   });
 
   it('caches previous searches', () => {
     const initialFilterObjsCalls = filterObjsSpy.mock.calls.length;
-    stateTracker.filterObjs(objSearchFilterFunc);
-    stateTracker.filterObjs(objSearchFilterFunc);
+    locs.filterObjs(objSearchFilterFunc);
+    locs.filterObjs(objSearchFilterFunc);
 
     expect(filterObjsSpy).toHaveBeenCalledTimes(initialFilterObjsCalls + 1);
   });
 
   it('caches even when no results are found', () => {
     const initialFilterObjsCalls = filterObjsSpy.mock.calls.length;
-    stateTracker.filterObjs(noResultsSearchFilterFunc);
-    stateTracker.filterObjs(noResultsSearchFilterFunc);
+    locs.filterObjs(noResultsSearchFilterFunc);
+    locs.filterObjs(noResultsSearchFilterFunc);
 
     expect(filterObjsSpy).toHaveBeenCalledTimes(initialFilterObjsCalls + 1);
   });
@@ -412,14 +405,14 @@ describe('filterObjs', () => {
     const cacheCheckFilterFunc = newBasicFilterFromParams({ test: true });
 
     beforeEach(() => {
-      stateTracker = Locs.new();
-      stateTracker.filterObjs(cacheCheckFilterFunc);
+      locs = Locs.new();
+      locs.filterObjs(cacheCheckFilterFunc);
     });
 
     it('adds new results to cache when any matching object created', () => {
       allObjectTypes.forEach((objType) => {
         const initialFilterObjsResultsLength =
-          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+          locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
           `add:${objType}`,
@@ -430,7 +423,7 @@ describe('filterObjs', () => {
           )
         );
 
-        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength + 1
         );
       });
@@ -452,11 +445,11 @@ describe('filterObjs', () => {
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
-          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+          locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(`destroy:${createdObj.get('_type')}`, createdObj);
 
-        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength - 1
         );
       });
@@ -473,13 +466,13 @@ describe('filterObjs', () => {
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
-          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+          locs.filterObjs(cacheCheckFilterFunc).length;
 
         createdObj.set('test', true);
 
         triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
-        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength + 1
         );
       });
@@ -501,12 +494,12 @@ describe('filterObjs', () => {
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
-          stateTracker.filterObjs(cacheCheckFilterFunc).length;
+          locs.filterObjs(cacheCheckFilterFunc).length;
 
         createdObj.set('test', false);
         triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
 
-        expect(stateTracker.filterObjs(cacheCheckFilterFunc)).toHaveLength(
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength - 1
         );
       });
@@ -518,26 +511,40 @@ describe('getAttrByName and getAttrObjByName', () => {
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
-  let stateTracker: ILocs;
+  let locs: ILocs;
   beforeEach(() => {
-    stateTracker = Locs.new();
+    locs = Locs.new();
   });
 
   it('getAttrObjByName caches each search', () => {
-    stateTracker.getAttrObjByName(...getAttrArgs);
+    locs.getAttrObjByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    stateTracker.getAttrObjByName(...getAttrArgs);
+    locs.getAttrObjByName(...getAttrArgs);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('getAttrByName caches each search', () => {
-    stateTracker.getAttrByName(...getAttrArgs);
+    locs.getAttrByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    stateTracker.getAttrByName(...getAttrArgs);
+    locs.getAttrByName(...getAttrArgs);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
-  it.todo('event checks');
+  it('event checks', () => {
+    locs.getAttrObjByName(...getAttrArgs);
+
+    const newAttribute = new MockRoll20Object(
+      'attribute',
+      'created_test_attribute',
+      {
+        _characterid: getAttrCharacterId,
+        name: 'test_attr_name',
+      }
+    );
+    triggerEvent('add:attribute', newAttribute);
+
+    expect(locs.getAttrObjByName(...getAttrArgs)).toContain(newAttribute);
+  });
 });
