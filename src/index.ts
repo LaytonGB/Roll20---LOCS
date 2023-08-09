@@ -9,7 +9,6 @@ export interface ILocsFactory {
   new: () => ILocs;
 }
 
-// this matches the property and method signatures of the StateTracker class
 export interface ILocs {
   createObj: (
     type: ObjectType,
