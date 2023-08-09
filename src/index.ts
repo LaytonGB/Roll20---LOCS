@@ -319,6 +319,7 @@ export const Locs: ILocsFactory = (() => {
       [parameter: string]: any;
     }): string {
       return Object.entries(parameters)
+        .sort()
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
     }
