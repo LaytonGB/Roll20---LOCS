@@ -35,8 +35,7 @@ const Locs = (() => {
             this.subscribers.splice(foundCallbackIndex, 1);
         }
     }
-    // TODO add createObj that instantly caches obj
-    class StateTracker {
+    class Locs {
         constructor() {
             this.eventHandlers = new Map();
             this.cache = {
@@ -45,6 +44,14 @@ const Locs = (() => {
                 finds: new Map(),
                 filters: new Map(),
             };
+        }
+        createObj(type, properties) {
+            // @ts-ignore not assignable error because of roll20 types
+            const newObject = createObj(type, properties);
+            if (newObject) {
+                this.cacheObject(newObject);
+                return newObject;
+            }
         }
         findObjs(properties) {
             function addResultIfMatches(obj) {
@@ -192,7 +199,6 @@ const Locs = (() => {
                 const destroyCallback = () => {
                     this.cache.objects.delete(obj.id);
                     this.cache.events.delete(obj.id);
-                    // TODO on destroy this callback should stop listening
                 };
                 events.set(destroyEventLabel, destroyCallback);
                 this.watchEventOnce(destroyEventLabel, destroyCallback);
@@ -211,11 +217,6 @@ const Locs = (() => {
                 .map(([key, value]) => `${key}=${value}`)
                 .join('&');
         }
-        // TODO use this where needed
-        stopWatchingEvent(eventLabel, callback) {
-            var _a;
-            (_a = this.eventHandlers.get(eventLabel)) === null || _a === void 0 ? void 0 : _a.unsubscribe(callback);
-        }
         watchEvent(eventLabel, callback) {
             const event = this.getOrCreateEvent(eventLabel);
             event.subscribe(callback);
@@ -226,6 +227,6 @@ const Locs = (() => {
         }
     }
     return {
-        createStateTracker: () => new StateTracker(),
+        new: () => new Locs(),
     };
 })();
