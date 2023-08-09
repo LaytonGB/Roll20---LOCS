@@ -36,10 +36,7 @@ export interface ILocs {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const Locs: ILocsFactory = (() => {
   class EventHandler {
-    private subscribers: [
-      (obj: Roll20Object, oldObj?: Roll20Object) => void,
-      boolean
-    ][] = [];
+    private subscribers: [(obj: Roll20Object) => void, boolean][] = [];
 
     label: Roll20EventLabel;
 
@@ -50,18 +47,17 @@ export const Locs: ILocsFactory = (() => {
       on(roll20EventLabel, this.fire.bind(this));
     }
 
-    fire(obj: Roll20Object, oldObj?: Roll20Object): void {
+    fire(obj: Roll20Object): void {
       const indexesToRemove: number[] = [];
       this.subscribers.forEach(
         ([subscriberCallback, removeAfterFiring], index) => {
-          subscriberCallback(obj, oldObj);
+          subscriberCallback(obj);
           if (removeAfterFiring) {
             indexesToRemove.push(index);
           }
         }
       );
 
-      // TODO optimize
       for (const index of indexesToRemove) {
         this.subscribers.splice(index, 1);
       }
@@ -92,21 +88,6 @@ export const Locs: ILocsFactory = (() => {
 
   class Locs implements ILocs {
     private eventHandlers = new Map<Roll20EventLabel, EventHandler>();
-    private objectTypes: ObjectType[] = [
-      'graphic',
-      'text',
-      'path',
-      'character',
-      'ability',
-      'attribute',
-      'handout',
-      'rollabletable',
-      'tableitem',
-      'macro',
-      'campaign',
-      'player',
-      'page',
-    ];
     private cache = {
       objects: new Map<Roll20Id, Roll20Object>(),
       events: new Map<
@@ -130,13 +111,25 @@ export const Locs: ILocsFactory = (() => {
     }
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
-      function isMatch(obj: Roll20Object) {
-        for (const [property, value] of properties.entries()) {
+      function addResultIfMatches(obj: Roll20Object) {
+        for (const [property, value] of Object.entries(properties)) {
           if (obj.get(property) !== value) {
-            return false;
+            return;
           }
         }
-        return true;
+        newCacheValue.push(obj);
+      }
+
+      function removeResultIfNotMatches(
+        obj: Roll20Object,
+        foundObjectIndex: number
+      ) {
+        for (const [property, value] of Object.entries(properties)) {
+          if (obj.get(property) !== value) {
+            newCacheValue.splice(foundObjectIndex, 1);
+            return;
+          }
+        }
       }
 
       const cacheKey = this.keyFromSearchArgs(properties);
@@ -155,27 +148,16 @@ export const Locs: ILocsFactory = (() => {
       this.cache.events.set(cacheKey, eventsForThisSearch);
 
       // TODO tidy these events
-      eventsForThisSearch.set(
-        `add:${properties._type}`,
-        (obj: Roll20Object) => {
-          if (isMatch(obj) && !newCacheValue.includes(obj)) {
-            newCacheValue.push(obj);
-          }
-        }
-      );
+      eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
 
       eventsForThisSearch.set(
         `change:${properties._type}`,
-        (obj: Roll20Object, oldObj: Roll20Object) => {
+        (obj: Roll20Object) => {
           const foundObjectIndex = newCacheValue.indexOf(obj);
           if (foundObjectIndex === -1) {
-            if (isMatch(obj)) {
-              newCacheValue.push(obj);
-            }
+            addResultIfMatches(obj);
           } else {
-            if (!isMatch(obj)) {
-              newCacheValue.splice(foundObjectIndex, 1);
-            }
+            removeResultIfNotMatches(obj, foundObjectIndex);
           }
         }
       );
@@ -206,8 +188,25 @@ export const Locs: ILocsFactory = (() => {
       const newCacheResults = filterObjs(callback);
       this.cache.filters.set(callback, newCacheResults);
 
+      // TODO store this somewhere better
+      const allObjectTypes: ObjectType[] = [
+        'graphic',
+        'text',
+        'path',
+        'character',
+        'ability',
+        'attribute',
+        'handout',
+        'rollabletable',
+        'tableitem',
+        'macro',
+        'campaign',
+        'player',
+        'page',
+      ];
+
       // TODO clean these somehow
-      this.objectTypes.forEach((objType) => {
+      allObjectTypes.forEach((objType) => {
         this.watchEvent(`add:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
             newCacheResults.push(obj);
