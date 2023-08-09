@@ -136,7 +136,6 @@ export const Locs: ILocsFactory = (() => {
       const eventsForThisSearch = new Map();
       this.cache.events.set(cacheKey, eventsForThisSearch);
 
-      // TODO tidy these events
       eventsForThisSearch.set(
         `add:${properties._type}`,
         (obj: Roll20Object) => {
@@ -192,7 +191,6 @@ export const Locs: ILocsFactory = (() => {
       const newCacheResults = filterObjs(callback);
       this.cache.filters.set(callback, newCacheResults);
 
-      // TODO store this somewhere better
       const allObjectTypes: ObjectType[] = [
         'graphic',
         'text',
@@ -209,7 +207,6 @@ export const Locs: ILocsFactory = (() => {
         'page',
       ];
 
-      // TODO clean these somehow
       allObjectTypes.forEach((objType) => {
         this.watchEvent(`add:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
@@ -263,7 +260,7 @@ export const Locs: ILocsFactory = (() => {
       return attrObj.get(value_type);
     }
 
-    // TODO duplicate results? does roll20 manage this?
+    // TODO RESEARCH does roll20 manage duplicate named attributes?
     getAttrObjByName(
       character_id: string,
       attribute_name: string
