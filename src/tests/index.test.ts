@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
+import _ from 'lodash';
+
 import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
@@ -137,7 +139,7 @@ describe('object and property caching', () => {
       const cachedObject = locs.getObj(...getArgs);
       const getObjCallCount = getObjSpy.mock.calls.length;
 
-      triggerEvent('destroy:graphic', cachedObject as Roll20Object);
+      triggerEvent('destroy', 'graphic', cachedObject as Roll20Object);
 
       locs.getObj(...getArgs);
 
@@ -229,6 +231,17 @@ describe('findObjs', () => {
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
+  it('is agnostic about the order of properties', () => {
+    locs.findObjs(objSearchParams);
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
+    locs.findObjs({
+      top: mockValues.mockObjectConstants.mockGraphicTop,
+      _type: objSearchType,
+    });
+
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
+  });
+
   it('still returns items if type is excluded', () => {
     const searchParamsWithoutType = {
       top: mockValues.mockObjectConstants.mockGraphicTop,
@@ -269,7 +282,7 @@ describe('findObjs', () => {
         top: mockValues.mockObjectConstants.mockGraphicTop,
       });
 
-      triggerEvent('add:graphic', newObject);
+      triggerEvent('add', 'graphic', newObject);
 
       const newSearchResults = locs.findObjs(objSearchParams);
 
@@ -282,7 +295,7 @@ describe('findObjs', () => {
         idToBeRemoved
       ) as Roll20Object;
 
-      triggerEvent('destroy:graphic', objToBeRemoved);
+      triggerEvent('destroy', 'graphic', objToBeRemoved);
 
       const newSearchResults = locs.findObjs(objSearchParams);
 
@@ -295,13 +308,23 @@ describe('findObjs', () => {
         `FINDOBJS_CACHE_CREATED_${objSearchType}`,
         { top: 180 }
       );
-      triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        'add',
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj
+      );
 
       const initialFindObjsResultsLength =
         locs.findObjs(objSearchParams).length;
 
+      const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', objSearchParams.top);
-      triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        'change',
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj,
+        oldObj
+      );
 
       expect(locs.findObjs(objSearchParams)).toHaveLength(
         initialFindObjsResultsLength + 1
@@ -314,13 +337,23 @@ describe('findObjs', () => {
         `FINDOBJS_CACHE_CREATED_${objSearchType}`,
         { top: objSearchParams.top }
       );
-      triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        'add',
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj
+      );
 
       const initialFindObjsResultsLength =
         locs.findObjs(objSearchParams).length;
 
+      const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', 180);
-      triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        'change',
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj,
+        oldObj
+      );
 
       expect(locs.findObjs(objSearchParams)).toHaveLength(
         initialFindObjsResultsLength - 1
@@ -413,7 +446,8 @@ describe('filterObjs', () => {
           locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
-          `add:${objType}`,
+          'add',
+          `${objType}`,
           new MockRoll20Object(
             objType,
             `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
@@ -438,14 +472,22 @@ describe('filterObjs', () => {
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
-        triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          'add',
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj
+        );
       });
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
-        triggerEvent(`destroy:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          'destroy',
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj
+        );
 
         expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength - 1
@@ -466,9 +508,14 @@ describe('filterObjs', () => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
+        const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', true);
-
-        triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          'change',
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj,
+          oldObj
+        );
 
         expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength + 1
@@ -487,15 +534,25 @@ describe('filterObjs', () => {
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
-        triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          'add',
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj
+        );
       });
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
+        const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', false);
-        triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          'change',
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj,
+          oldObj
+        );
 
         expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength - 1
@@ -532,8 +589,9 @@ describe('getAttrByName and getAttrObjByName', () => {
 
   it('event checks', () => {
     const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
+    const oldResult = _.cloneDeep(getAttrResult);
     getAttrResult?.set('name', 'new_name');
-    triggerEvent('change:attribute', getAttrResult);
+    triggerEvent('change', 'attribute', getAttrResult, oldResult);
 
     const newGetAttrResult = locs.getAttrObjByName(...getAttrArgs);
     expect(newGetAttrResult).toBeUndefined();

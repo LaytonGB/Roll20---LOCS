@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
+export type EventType = 'add' | 'change' | 'destroy';
 export type Roll20Id = string;
 export type Roll20EventLabel = string;
 export type SearchKey = string;
@@ -8,7 +9,6 @@ export interface ILocsFactory {
   new: () => ILocs;
 }
 
-// this matches the property and method signatures of the StateTracker class
 export interface ILocs {
   createObj: (
     type: ObjectType,
@@ -36,7 +36,7 @@ export interface ILocs {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const Locs: ILocsFactory = (() => {
   class EventHandler {
-    private subscribers: [(obj: Roll20Object) => void, boolean][] = [];
+    private subscribers: [(...objs: Roll20Object[]) => void, boolean][] = [];
 
     label: Roll20EventLabel;
 
@@ -47,11 +47,11 @@ export const Locs: ILocsFactory = (() => {
       on(roll20EventLabel, this.fire.bind(this));
     }
 
-    fire(obj: Roll20Object): void {
+    fire(...objs: Roll20Object[]): void {
       const indexesToRemove: number[] = [];
       this.subscribers.forEach(
         ([subscriberCallback, removeAfterFiring], index) => {
-          subscriberCallback(obj);
+          subscriberCallback(...objs);
           if (removeAfterFiring) {
             indexesToRemove.push(index);
           }
@@ -111,25 +111,13 @@ export const Locs: ILocsFactory = (() => {
     }
 
     findObjs(properties: { [property: string]: any }): Roll20Object[] {
-      function addResultIfMatches(obj: Roll20Object) {
+      function isMatch(obj: Roll20Object) {
         for (const [property, value] of Object.entries(properties)) {
           if (obj.get(property) !== value) {
-            return;
+            return false;
           }
         }
-        newCacheValue.push(obj);
-      }
-
-      function removeResultIfNotMatches(
-        obj: Roll20Object,
-        foundObjectIndex: number
-      ) {
-        for (const [property, value] of Object.entries(properties)) {
-          if (obj.get(property) !== value) {
-            newCacheValue.splice(foundObjectIndex, 1);
-            return;
-          }
-        }
+        return true;
       }
 
       const cacheKey = this.keyFromSearchArgs(properties);
@@ -147,17 +135,31 @@ export const Locs: ILocsFactory = (() => {
       const eventsForThisSearch = new Map();
       this.cache.events.set(cacheKey, eventsForThisSearch);
 
-      // TODO tidy these events
-      eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
+      eventsForThisSearch.set(
+        `add:${properties._type}`,
+        (obj: Roll20Object) => {
+          if (isMatch(obj)) {
+            newCacheValue.push(obj);
+          }
+        }
+      );
 
       eventsForThisSearch.set(
         `change:${properties._type}`,
-        (obj: Roll20Object) => {
-          const foundObjectIndex = newCacheValue.indexOf(obj);
-          if (foundObjectIndex === -1) {
-            addResultIfMatches(obj);
+        (obj: Roll20Object, oldObj: Roll20Object) => {
+          const doesMatch = isMatch(obj);
+          const didMatch = isMatch(oldObj);
+          if (doesMatch) {
+            if (!didMatch) {
+              newCacheValue.push(obj);
+            }
           } else {
-            removeResultIfNotMatches(obj, foundObjectIndex);
+            if (didMatch) {
+              const foundObjectIndex = newCacheValue.indexOf(obj);
+              if (foundObjectIndex !== -1) {
+                newCacheValue.splice(foundObjectIndex, 1);
+              }
+            }
           }
         }
       );
@@ -188,7 +190,6 @@ export const Locs: ILocsFactory = (() => {
       const newCacheResults = filterObjs(callback);
       this.cache.filters.set(callback, newCacheResults);
 
-      // TODO store this somewhere better
       const allObjectTypes: ObjectType[] = [
         'graphic',
         'text',
@@ -205,7 +206,6 @@ export const Locs: ILocsFactory = (() => {
         'page',
       ];
 
-      // TODO clean these somehow
       allObjectTypes.forEach((objType) => {
         this.watchEvent(`add:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
@@ -213,22 +213,28 @@ export const Locs: ILocsFactory = (() => {
           }
         });
 
-        this.watchEvent(`destroy:${objType}`, (obj: Roll20Object) => {
-          if (callback(obj)) {
-            const foundObjIndex = newCacheResults.indexOf(obj);
-            if (foundObjIndex !== -1) {
-              newCacheResults.splice(foundObjIndex, 1);
+        this.watchEvent(
+          `change:${objType}`,
+          (obj: Roll20Object, oldObj: Roll20Object) => {
+            const doesMatch = callback(obj);
+            const didMatch = callback(oldObj);
+            if (doesMatch) {
+              if (!didMatch) {
+                newCacheResults.push(obj);
+              }
+            } else {
+              if (didMatch) {
+                const foundObjIndex = newCacheResults.indexOf(obj);
+                if (foundObjIndex !== -1) {
+                  newCacheResults.splice(foundObjIndex, 1);
+                }
+              }
             }
           }
-        });
+        );
 
-        this.watchEvent(`change:${objType}`, (obj: Roll20Object) => {
-          // TODO add a way for the system to get changed objects both pre and post change
+        this.watchEvent(`destroy:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
-            if (!newCacheResults.includes(obj)) {
-              newCacheResults.push(obj);
-            }
-          } else {
             const foundObjIndex = newCacheResults.indexOf(obj);
             if (foundObjIndex !== -1) {
               newCacheResults.splice(foundObjIndex, 1);
@@ -253,7 +259,7 @@ export const Locs: ILocsFactory = (() => {
       return attrObj.get(value_type);
     }
 
-    // TODO duplicate results? does roll20 manage this?
+    // TODO RESEARCH does roll20 manage duplicate named attributes?
     getAttrObjByName(
       character_id: string,
       attribute_name: string
@@ -313,13 +319,14 @@ export const Locs: ILocsFactory = (() => {
       [parameter: string]: any;
     }): string {
       return Object.entries(parameters)
+        .sort()
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
     }
 
     private watchEvent(
       eventLabel: Roll20EventLabel,
-      callback: (obj: Roll20Object) => void
+      callback: (...objs: Roll20Object[]) => void
     ): void {
       const event = this.getOrCreateEvent(eventLabel);
       event.subscribe(callback);
