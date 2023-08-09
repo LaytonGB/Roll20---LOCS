@@ -4,6 +4,12 @@ export type Roll20Id = string;
 export type Roll20EventLabel = string;
 export type SearchKey = string;
 
+export enum EventType {
+  ADD = 'add',
+  CHANGE = 'change',
+  DESTROY = 'destroy',
+}
+
 export interface ILocsFactory {
   new: () => ILocs;
 }

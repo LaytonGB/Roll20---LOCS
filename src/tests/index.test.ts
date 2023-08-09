@@ -4,7 +4,7 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import { ILocs, Roll20EventLabel, Locs } from '..';
+import { ILocs, Roll20EventLabel, Locs, EventType } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
@@ -137,7 +137,7 @@ describe('object and property caching', () => {
       const cachedObject = locs.getObj(...getArgs);
       const getObjCallCount = getObjSpy.mock.calls.length;
 
-      triggerEvent('destroy:graphic', cachedObject as Roll20Object);
+      triggerEvent(EventType.DESTROY, 'graphic', cachedObject as Roll20Object);
 
       locs.getObj(...getArgs);
 
@@ -269,7 +269,7 @@ describe('findObjs', () => {
         top: mockValues.mockObjectConstants.mockGraphicTop,
       });
 
-      triggerEvent('add:graphic', newObject);
+      triggerEvent(EventType.ADD, 'graphic', newObject);
 
       const newSearchResults = locs.findObjs(objSearchParams);
 
@@ -282,7 +282,7 @@ describe('findObjs', () => {
         idToBeRemoved
       ) as Roll20Object;
 
-      triggerEvent('destroy:graphic', objToBeRemoved);
+      triggerEvent(EventType.DESTROY, 'graphic', objToBeRemoved);
 
       const newSearchResults = locs.findObjs(objSearchParams);
 
@@ -295,13 +295,23 @@ describe('findObjs', () => {
         `FINDOBJS_CACHE_CREATED_${objSearchType}`,
         { top: 180 }
       );
-      triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        EventType.ADD,
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj
+      );
 
       const initialFindObjsResultsLength =
         locs.findObjs(objSearchParams).length;
 
+      const oldObj = JSON.parse(JSON.stringify(createdObj));
       createdObj.set('top', objSearchParams.top);
-      triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        EventType.CHANGE,
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj,
+        oldObj
+      );
 
       expect(locs.findObjs(objSearchParams)).toHaveLength(
         initialFindObjsResultsLength + 1
@@ -314,13 +324,23 @@ describe('findObjs', () => {
         `FINDOBJS_CACHE_CREATED_${objSearchType}`,
         { top: objSearchParams.top }
       );
-      triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        EventType.ADD,
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj
+      );
 
       const initialFindObjsResultsLength =
         locs.findObjs(objSearchParams).length;
 
+      const oldObj = JSON.parse(JSON.stringify(createdObj));
       createdObj.set('top', 180);
-      triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+      triggerEvent(
+        EventType.CHANGE,
+        `${createdObj.get('_type') as ObjectType}`,
+        createdObj,
+        oldObj
+      );
 
       expect(locs.findObjs(objSearchParams)).toHaveLength(
         initialFindObjsResultsLength - 1
@@ -413,7 +433,8 @@ describe('filterObjs', () => {
           locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
-          `add:${objType}`,
+          EventType.ADD,
+          `${objType}`,
           new MockRoll20Object(
             objType,
             `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
@@ -438,14 +459,22 @@ describe('filterObjs', () => {
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
-        triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          EventType.ADD,
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj
+        );
       });
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
-        triggerEvent(`destroy:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          EventType.DESTROY,
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj
+        );
 
         expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength - 1
@@ -466,9 +495,14 @@ describe('filterObjs', () => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
+        const oldObj = JSON.parse(JSON.stringify(createdObj));
         createdObj.set('test', true);
-
-        triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          EventType.CHANGE,
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj,
+          oldObj
+        );
 
         expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength + 1
@@ -487,15 +521,25 @@ describe('filterObjs', () => {
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
-        triggerEvent(`add:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          EventType.ADD,
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj
+        );
       });
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
+        const oldObj = JSON.parse(JSON.stringify(createdObj));
         createdObj.set('test', false);
-        triggerEvent(`change:${createdObj.get('_type')}`, createdObj);
+        triggerEvent(
+          EventType.CHANGE,
+          `${createdObj.get('_type') as ObjectType}`,
+          createdObj,
+          oldObj
+        );
 
         expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
           initialFilterObjsResultsLength - 1
@@ -532,8 +576,9 @@ describe('getAttrByName and getAttrObjByName', () => {
 
   it('event checks', () => {
     const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
+    const oldResult = JSON.parse(JSON.stringify(getAttrResult));
     getAttrResult?.set('name', 'new_name');
-    triggerEvent('change:attribute', getAttrResult);
+    triggerEvent(EventType.CHANGE, 'attribute', getAttrResult, oldResult);
 
     const newGetAttrResult = locs.getAttrObjByName(...getAttrArgs);
     expect(newGetAttrResult).toBeUndefined();
