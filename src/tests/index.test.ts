@@ -231,6 +231,17 @@ describe('findObjs', () => {
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
+  it('is agnostic about the order of properties', () => {
+    locs.findObjs(objSearchParams);
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
+    locs.findObjs({
+      top: mockValues.mockObjectConstants.mockGraphicTop,
+      _type: objSearchType,
+    });
+
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
+  });
+
   it('still returns items if type is excluded', () => {
     const searchParamsWithoutType = {
       top: mockValues.mockObjectConstants.mockGraphicTop,
