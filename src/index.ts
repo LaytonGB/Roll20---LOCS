@@ -42,7 +42,7 @@ export interface ILocs {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const Locs: ILocsFactory = (() => {
   class EventHandler {
-    private subscribers: [(obj: Roll20Object) => void, boolean][] = [];
+    private subscribers: [(...objs: Roll20Object[]) => void, boolean][] = [];
 
     label: Roll20EventLabel;
 
@@ -53,11 +53,11 @@ export const Locs: ILocsFactory = (() => {
       on(roll20EventLabel, this.fire.bind(this));
     }
 
-    fire(obj: Roll20Object): void {
+    fire(...objs: Roll20Object[]): void {
       const indexesToRemove: number[] = [];
       this.subscribers.forEach(
         ([subscriberCallback, removeAfterFiring], index) => {
-          subscriberCallback(obj);
+          subscriberCallback(...objs);
           if (removeAfterFiring) {
             indexesToRemove.push(index);
           }
@@ -158,7 +158,7 @@ export const Locs: ILocsFactory = (() => {
 
       eventsForThisSearch.set(
         `change:${properties._type}`,
-        (obj: Roll20Object) => {
+        (obj: Roll20Object, oldObj: Roll20Object) => {
           const foundObjectIndex = newCacheValue.indexOf(obj);
           if (foundObjectIndex === -1) {
             addResultIfMatches(obj);
@@ -219,22 +219,25 @@ export const Locs: ILocsFactory = (() => {
           }
         });
 
-        this.watchEvent(`destroy:${objType}`, (obj: Roll20Object) => {
-          if (callback(obj)) {
-            const foundObjIndex = newCacheResults.indexOf(obj);
-            if (foundObjIndex !== -1) {
-              newCacheResults.splice(foundObjIndex, 1);
+        this.watchEvent(
+          `change:${objType}`,
+          (obj: Roll20Object, oldObj: Roll20Object) => {
+            // TODO add a way for the system to get changed objects both pre and post change
+            if (callback(obj)) {
+              if (!newCacheResults.includes(obj)) {
+                newCacheResults.push(obj);
+              }
+            } else {
+              const foundObjIndex = newCacheResults.indexOf(obj);
+              if (foundObjIndex !== -1) {
+                newCacheResults.splice(foundObjIndex, 1);
+              }
             }
           }
-        });
+        );
 
-        this.watchEvent(`change:${objType}`, (obj: Roll20Object) => {
-          // TODO add a way for the system to get changed objects both pre and post change
+        this.watchEvent(`destroy:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
-            if (!newCacheResults.includes(obj)) {
-              newCacheResults.push(obj);
-            }
-          } else {
             const foundObjIndex = newCacheResults.indexOf(obj);
             if (foundObjIndex !== -1) {
               newCacheResults.splice(foundObjIndex, 1);
@@ -325,7 +328,7 @@ export const Locs: ILocsFactory = (() => {
 
     private watchEvent(
       eventLabel: Roll20EventLabel,
-      callback: (obj: Roll20Object) => void
+      callback: (...objs: Roll20Object[]) => void
     ): void {
       const event = this.getOrCreateEvent(eventLabel);
       event.subscribe(callback);
