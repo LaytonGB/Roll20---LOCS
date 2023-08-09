@@ -218,6 +218,7 @@ const Locs = (() => {
         }
         keyFromSearchArgs(parameters) {
             return Object.entries(parameters)
+                .sort()
                 .map(([key, value]) => `${key}=${value}`)
                 .join('&');
         }
