@@ -35,8 +35,56 @@ locs.filter((otherObj) => {
 });
 ```
 
-If you use LOCS and found it helpful, please make a PR and add your API to the list of Roll20 APIs using it!
+LOCS adds event listeners as needed to maintain the values in the cache. If an object is added, changed, or removed, LOCS will treat it accordingly across all cached values.
+
+## All functions
+
+### `createObj`
+
+```ts
+createObj: (type: ObjectType, properties: { [property: string]: any }) =>
+  Roll20Object | undefined;
+```
+
+### `findObjs`
+
+```ts
+findObjs: (properties: { [property: string]: any }) => Roll20Object[];
+```
+
+### `filterObjs`
+
+```ts
+filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
+```
+
+### `getAttrByName`
+
+```ts
+getAttrByName: (
+  character_id: Roll20Id,
+  attribute_name: string,
+  value_type?: "current" | "max"
+) => string;
+```
+
+### `getAttrObjByName`
+
+Rather than getting the value of an attribute, use this method to get the object that contains the value. It uses the same cache as `getAttrByName`, so searching for an attribute in one method will cache that attribute for the other.
+
+```ts
+getAttrObjByName: (character_id: Roll20Id, attribute_name: string) =>
+  Roll20Object | undefined;
+```
+
+### `getObj`
+
+```ts
+getObj: (type: ObjectType, id: Roll20Id) => Roll20Object | undefined;
+```
 
 ## APIs using LOCS
+
+If you use LOCS and found it helpful, please make a PR and add your API to the list of Roll20 APIs using it!
 
 - None :(
