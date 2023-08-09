@@ -88,18 +88,18 @@ function getTriggerEventWithBoundEvents(
   events: Map<string, ((...objs: Roll20Object[]) => void)[]>
 ) {
   function triggerEvent(
-    eventType: EventType.ADD,
+    eventType: 'add',
     objectType: ObjectType,
     obj: Roll20Object
   ): void;
   function triggerEvent(
-    eventType: EventType.CHANGE,
+    eventType: 'change',
     objectType: ObjectType,
     obj: Roll20Object,
     oldObj: Roll20Object
   ): void;
   function triggerEvent(
-    eventType: EventType.DESTROY,
+    eventType: 'destroy',
     objectType: ObjectType,
     obj: Roll20Object
   ): void;

@@ -1,14 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
+export type EventType = 'add' | 'change' | 'destroy';
 export type Roll20Id = string;
 export type Roll20EventLabel = string;
 export type SearchKey = string;
-
-export enum EventType {
-  ADD = 'add',
-  CHANGE = 'change',
-  DESTROY = 'destroy',
-}
 
 export interface ILocsFactory {
   new: () => ILocs;

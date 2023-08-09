@@ -6,7 +6,7 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import { ILocs, Roll20EventLabel, Locs, EventType } from '..';
+import { ILocs, Roll20EventLabel, Locs } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
@@ -139,7 +139,7 @@ describe('object and property caching', () => {
       const cachedObject = locs.getObj(...getArgs);
       const getObjCallCount = getObjSpy.mock.calls.length;
 
-      triggerEvent(EventType.DESTROY, 'graphic', cachedObject as Roll20Object);
+      triggerEvent('destroy', 'graphic', cachedObject as Roll20Object);
 
       locs.getObj(...getArgs);
 
@@ -271,7 +271,7 @@ describe('findObjs', () => {
         top: mockValues.mockObjectConstants.mockGraphicTop,
       });
 
-      triggerEvent(EventType.ADD, 'graphic', newObject);
+      triggerEvent('add', 'graphic', newObject);
 
       const newSearchResults = locs.findObjs(objSearchParams);
 
@@ -284,7 +284,7 @@ describe('findObjs', () => {
         idToBeRemoved
       ) as Roll20Object;
 
-      triggerEvent(EventType.DESTROY, 'graphic', objToBeRemoved);
+      triggerEvent('destroy', 'graphic', objToBeRemoved);
 
       const newSearchResults = locs.findObjs(objSearchParams);
 
@@ -298,7 +298,7 @@ describe('findObjs', () => {
         { top: 180 }
       );
       triggerEvent(
-        EventType.ADD,
+        'add',
         `${createdObj.get('_type') as ObjectType}`,
         createdObj
       );
@@ -309,7 +309,7 @@ describe('findObjs', () => {
       const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', objSearchParams.top);
       triggerEvent(
-        EventType.CHANGE,
+        'change',
         `${createdObj.get('_type') as ObjectType}`,
         createdObj,
         oldObj
@@ -327,7 +327,7 @@ describe('findObjs', () => {
         { top: objSearchParams.top }
       );
       triggerEvent(
-        EventType.ADD,
+        'add',
         `${createdObj.get('_type') as ObjectType}`,
         createdObj
       );
@@ -338,7 +338,7 @@ describe('findObjs', () => {
       const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', 180);
       triggerEvent(
-        EventType.CHANGE,
+        'change',
         `${createdObj.get('_type') as ObjectType}`,
         createdObj,
         oldObj
@@ -435,7 +435,7 @@ describe('filterObjs', () => {
           locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
-          EventType.ADD,
+          'add',
           `${objType}`,
           new MockRoll20Object(
             objType,
@@ -462,7 +462,7 @@ describe('filterObjs', () => {
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
         triggerEvent(
-          EventType.ADD,
+          'add',
           `${createdObj.get('_type') as ObjectType}`,
           createdObj
         );
@@ -473,7 +473,7 @@ describe('filterObjs', () => {
           locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
-          EventType.DESTROY,
+          'destroy',
           `${createdObj.get('_type') as ObjectType}`,
           createdObj
         );
@@ -500,7 +500,7 @@ describe('filterObjs', () => {
         const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', true);
         triggerEvent(
-          EventType.CHANGE,
+          'change',
           `${createdObj.get('_type') as ObjectType}`,
           createdObj,
           oldObj
@@ -524,7 +524,7 @@ describe('filterObjs', () => {
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
         triggerEvent(
-          EventType.ADD,
+          'add',
           `${createdObj.get('_type') as ObjectType}`,
           createdObj
         );
@@ -537,7 +537,7 @@ describe('filterObjs', () => {
         const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', false);
         triggerEvent(
-          EventType.CHANGE,
+          'change',
           `${createdObj.get('_type') as ObjectType}`,
           createdObj,
           oldObj
@@ -580,7 +580,7 @@ describe('getAttrByName and getAttrObjByName', () => {
     const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
     const oldResult = _.cloneDeep(getAttrResult);
     getAttrResult?.set('name', 'new_name');
-    triggerEvent(EventType.CHANGE, 'attribute', getAttrResult, oldResult);
+    triggerEvent('change', 'attribute', getAttrResult, oldResult);
 
     const newGetAttrResult = locs.getAttrObjByName(...getAttrArgs);
     expect(newGetAttrResult).toBeUndefined();

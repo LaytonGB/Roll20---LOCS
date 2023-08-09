@@ -8,10 +8,10 @@ const Locs = (() => {
             // @ts-ignore Does not correctly identify `on` overloads
             on(roll20EventLabel, this.fire.bind(this));
         }
-        fire(obj) {
+        fire(...objs) {
             const indexesToRemove = [];
             this.subscribers.forEach(([subscriberCallback, removeAfterFiring], index) => {
-                subscriberCallback(obj);
+                subscriberCallback(...objs);
                 if (removeAfterFiring) {
                     indexesToRemove.push(index);
                 }
@@ -54,21 +54,13 @@ const Locs = (() => {
             }
         }
         findObjs(properties) {
-            function addResultIfMatches(obj) {
+            function isMatch(obj) {
                 for (const [property, value] of Object.entries(properties)) {
                     if (obj.get(property) !== value) {
-                        return;
+                        return false;
                     }
                 }
-                newCacheValue.push(obj);
-            }
-            function removeResultIfNotMatches(obj, foundObjectIndex) {
-                for (const [property, value] of Object.entries(properties)) {
-                    if (obj.get(property) !== value) {
-                        newCacheValue.splice(foundObjectIndex, 1);
-                        return;
-                    }
-                }
+                return true;
             }
             const cacheKey = this.keyFromSearchArgs(properties);
             const cacheResult = this.cache.finds.get(cacheKey);
@@ -82,14 +74,26 @@ const Locs = (() => {
             const eventsForThisSearch = new Map();
             this.cache.events.set(cacheKey, eventsForThisSearch);
             // TODO tidy these events
-            eventsForThisSearch.set(`add:${properties._type}`, addResultIfMatches);
-            eventsForThisSearch.set(`change:${properties._type}`, (obj) => {
-                const foundObjectIndex = newCacheValue.indexOf(obj);
-                if (foundObjectIndex === -1) {
-                    addResultIfMatches(obj);
+            eventsForThisSearch.set(`add:${properties._type}`, (obj) => {
+                if (isMatch(obj)) {
+                    newCacheValue.push(obj);
+                }
+            });
+            eventsForThisSearch.set(`change:${properties._type}`, (obj, oldObj) => {
+                const doesMatch = isMatch(obj);
+                const didMatch = isMatch(oldObj);
+                if (doesMatch) {
+                    if (!didMatch) {
+                        newCacheValue.push(obj);
+                    }
                 }
                 else {
-                    removeResultIfNotMatches(obj, foundObjectIndex);
+                    if (didMatch) {
+                        const foundObjectIndex = newCacheValue.indexOf(obj);
+                        if (foundObjectIndex !== -1) {
+                            newCacheValue.splice(foundObjectIndex, 1);
+                        }
+                    }
                 }
             });
             eventsForThisSearch.set(`destroy:${properties._type}`, (obj) => {
@@ -133,22 +137,25 @@ const Locs = (() => {
                         newCacheResults.push(obj);
                     }
                 });
-                this.watchEvent(`destroy:${objType}`, (obj) => {
-                    if (callback(obj)) {
-                        const foundObjIndex = newCacheResults.indexOf(obj);
-                        if (foundObjIndex !== -1) {
-                            newCacheResults.splice(foundObjIndex, 1);
-                        }
-                    }
-                });
-                this.watchEvent(`change:${objType}`, (obj) => {
-                    // TODO add a way for the system to get changed objects both pre and post change
-                    if (callback(obj)) {
-                        if (!newCacheResults.includes(obj)) {
+                this.watchEvent(`change:${objType}`, (obj, oldObj) => {
+                    const doesMatch = callback(obj);
+                    const didMatch = callback(oldObj);
+                    if (doesMatch) {
+                        if (!didMatch) {
                             newCacheResults.push(obj);
                         }
                     }
                     else {
+                        if (didMatch) {
+                            const foundObjIndex = newCacheResults.indexOf(obj);
+                            if (foundObjIndex !== -1) {
+                                newCacheResults.splice(foundObjIndex, 1);
+                            }
+                        }
+                    }
+                });
+                this.watchEvent(`destroy:${objType}`, (obj) => {
+                    if (callback(obj)) {
                         const foundObjIndex = newCacheResults.indexOf(obj);
                         if (foundObjIndex !== -1) {
                             newCacheResults.splice(foundObjIndex, 1);
