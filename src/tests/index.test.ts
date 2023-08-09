@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
+import _ from 'lodash';
+
 import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
@@ -304,7 +306,7 @@ describe('findObjs', () => {
       const initialFindObjsResultsLength =
         locs.findObjs(objSearchParams).length;
 
-      const oldObj = JSON.parse(JSON.stringify(createdObj));
+      const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', objSearchParams.top);
       triggerEvent(
         EventType.CHANGE,
@@ -333,7 +335,7 @@ describe('findObjs', () => {
       const initialFindObjsResultsLength =
         locs.findObjs(objSearchParams).length;
 
-      const oldObj = JSON.parse(JSON.stringify(createdObj));
+      const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', 180);
       triggerEvent(
         EventType.CHANGE,
@@ -495,7 +497,7 @@ describe('filterObjs', () => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
-        const oldObj = JSON.parse(JSON.stringify(createdObj));
+        const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', true);
         triggerEvent(
           EventType.CHANGE,
@@ -532,7 +534,7 @@ describe('filterObjs', () => {
         const initialFilterObjsResultsLength =
           locs.filterObjs(cacheCheckFilterFunc).length;
 
-        const oldObj = JSON.parse(JSON.stringify(createdObj));
+        const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', false);
         triggerEvent(
           EventType.CHANGE,
@@ -576,7 +578,7 @@ describe('getAttrByName and getAttrObjByName', () => {
 
   it('event checks', () => {
     const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
-    const oldResult = JSON.parse(JSON.stringify(getAttrResult));
+    const oldResult = _.cloneDeep(getAttrResult);
     getAttrResult?.set('name', 'new_name');
     triggerEvent(EventType.CHANGE, 'attribute', getAttrResult, oldResult);
 
