@@ -5,6 +5,17 @@ export type Roll20Id = string;
 export type Roll20EventLabel = string;
 export type SearchKey = string;
 
+type Roll20ObjectTypeMap = {
+  text: Text;
+  graphic: Graphic;
+  character: Character;
+  attribute: Attribute;
+  ability: Ability;
+  player: Player;
+  macro: Macro;
+  page: Page;
+};
+
 export interface ILocsFactory {
   new: () => ILocs;
 }
@@ -18,25 +29,45 @@ interface ICreateObj {
     | undefined;
 }
 
-export interface ILocs {
-  createObj: ICreateObj;
+interface IFindObjs {
+  (properties: { [property: string]: any }): Roll20Object[];
+}
 
-  findObjs: (properties: { [property: string]: any }) => Roll20Object[];
+interface IFilterObjs {
+  (callback: (obj: Roll20Object) => boolean): Roll20Object[];
+}
 
-  filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
-
-  getAttrByName: (
+interface IGetAttrByName {
+  (
     character_id: Roll20Id,
     attribute_name: string,
     value_type?: 'current' | 'max'
-  ) => string;
+  ): string;
+}
 
-  getAttrObjByName: (
-    character_id: Roll20Id,
-    attribute_name: string
-  ) => Roll20Object | undefined;
+interface IGetAttrObjByName {
+  (character_id: Roll20Id, attribute_name: string): Attribute | undefined;
+}
 
-  getObj: (type: ObjectType, id: Roll20Id) => Roll20Object | undefined;
+interface IGetObj {
+  (type: 'text', id: string): Text | undefined;
+  (type: 'graphic', id: string): Graphic | undefined;
+  (type: 'character', id: string): Character | undefined;
+  (type: 'attribute', id: string): Attribute | undefined;
+  (type: 'ability', id: string): Ability | undefined;
+  (type: 'player', id: string): Player | undefined;
+  (type: 'macro', id: string): Macro | undefined;
+  (type: 'page', id: string): Page | undefined;
+  (type: ObjectType, id: string): Roll20Object | undefined;
+}
+
+export interface ILocs {
+  createObj: ICreateObj;
+  findObjs: IFindObjs;
+  filterObjs: IFilterObjs;
+  getAttrByName: IGetAttrByName;
+  getAttrObjByName: IGetAttrObjByName;
+  getObj: IGetObj;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -129,6 +160,32 @@ export const Locs: ILocsFactory = (() => {
       return event;
     };
 
+    const castRoll20ObjectToType = <T extends keyof Roll20ObjectTypeMap>(
+      type: ObjectType,
+      object: Roll20Object | undefined
+    ): (Roll20ObjectTypeMap[T] | Roll20Object) | undefined => {
+      switch (type) {
+        case 'text':
+          return object as Roll20ObjectTypeMap['text'] | undefined;
+        case 'graphic':
+          return object as Roll20ObjectTypeMap['graphic'] | undefined;
+        case 'character':
+          return object as Roll20ObjectTypeMap['character'] | undefined;
+        case 'attribute':
+          return object as Roll20ObjectTypeMap['attribute'] | undefined;
+        case 'ability':
+          return object as Roll20ObjectTypeMap['ability'] | undefined;
+        case 'player':
+          return object as Roll20ObjectTypeMap['player'] | undefined;
+        case 'macro':
+          return object as Roll20ObjectTypeMap['macro'] | undefined;
+        case 'page':
+          return object as Roll20ObjectTypeMap['page'] | undefined;
+        default:
+          return object as Roll20Object | undefined;
+      }
+    };
+
     const keyFromSearchArgs = (parameters: {
       [parameter: string]: any;
     }): string => {
@@ -154,15 +211,15 @@ export const Locs: ILocsFactory = (() => {
       event.subscribeUntilFired(callback);
     };
 
-    function createObj(
+    function locsCreateObj(
       type: 'attribute',
       properties: { [property: string]: any }
     ): Attribute | undefined;
-    function createObj(
+    function locsCreateObj(
       type: 'graphic',
       properties: { [property: string]: any }
     ): Graphic | undefined;
-    function createObj(
+    function locsCreateObj(
       type: ObjectType,
       properties: { [property: string]: any }
     ): Roll20Object | undefined {
@@ -174,9 +231,9 @@ export const Locs: ILocsFactory = (() => {
       }
     }
 
-    const findObjs = (properties: {
+    function locsFindObjs(properties: {
       [property: string]: any;
-    }): Roll20Object[] => {
+    }): Roll20Object[] {
       function isMatch(obj: Roll20Object) {
         for (const [property, value] of Object.entries(properties)) {
           if (obj.get(property) !== value) {
@@ -245,11 +302,13 @@ export const Locs: ILocsFactory = (() => {
       }
 
       return roll20Result;
-    };
+    }
 
-    const filterObjs = (
+    // TODO WARNING this can fail if the callback references a changing variable
+    // at least warn users of this
+    function locsFilterObjs(
       callback: (obj: Roll20Object) => boolean
-    ): Roll20Object[] => {
+    ): Roll20Object[] {
       const cachedResults = cache.filters.get(callback);
       if (cachedResults) {
         return cachedResults;
@@ -312,43 +371,51 @@ export const Locs: ILocsFactory = (() => {
       });
 
       return newCacheResults;
-    };
+    }
 
-    const getAttrByName = (
+    function locsGetAttrByName(
       character_id: string,
       attribute_name: string,
       value_type: 'current' | 'max' = 'current'
-    ): string => {
-      const attrObj = getAttrObjByName(character_id, attribute_name);
+    ): string {
+      const attrObj = locsGetAttrObjByName(character_id, attribute_name);
       if (!attrObj) {
         return '';
       }
 
       return attrObj.get(value_type);
-    };
+    }
 
     // TODO RESEARCH does roll20 manage duplicate named attributes?
-    const getAttrObjByName = (
+    function locsGetAttrObjByName(
       character_id: string,
       attribute_name: string
-    ): Roll20Object | undefined => {
+    ): Attribute | undefined {
       const searchArgs = {
         _type: 'attribute',
         _characterid: character_id,
         name: attribute_name,
       };
-      const searchResults = findObjs(searchArgs);
+      const searchResults = locsFindObjs(searchArgs);
       if (searchResults.length > 0) {
         const foundAttribute = searchResults[0];
         cacheObject(foundAttribute);
-        return foundAttribute;
+        return foundAttribute as Attribute | undefined;
       }
-    };
+    }
 
-    const getObj = (
+    function locsGetObj(type: 'text', id: string): Text | undefined;
+    function locsGetObj(type: 'graphic', id: string): Graphic | undefined;
+    function locsGetObj(type: 'character', id: string): Character | undefined;
+    function locsGetObj(type: 'attribute', id: string): Attribute | undefined;
+    function locsGetObj(type: 'ability', id: string): Ability | undefined;
+    function locsGetObj(type: 'player', id: string): Player | undefined;
+    function locsGetObj(type: 'macro', id: string): Macro | undefined;
+    function locsGetObj(type: 'page', id: string): Page | undefined;
+    function locsGetObj(
       type: ObjectType,
       id: Roll20Id
-    ): Roll20Object | undefined => {
+    ): Roll20Object | undefined {
       const cacheResult = cache.objects.get(id);
       if (cacheResult) {
         return cacheResult;
@@ -358,16 +425,16 @@ export const Locs: ILocsFactory = (() => {
       if (roll20Result) {
         cacheObject(roll20Result);
       }
-      return roll20Result;
-    };
+      return castRoll20ObjectToType(type, roll20Result);
+    }
 
     return {
-      createObj,
-      findObjs,
-      filterObjs,
-      getAttrByName,
-      getAttrObjByName,
-      getObj,
+      createObj: locsCreateObj,
+      findObjs: locsFindObjs,
+      filterObjs: locsFilterObjs,
+      getAttrByName: locsGetAttrByName,
+      getAttrObjByName: locsGetAttrObjByName,
+      getObj: locsGetObj,
     };
   };
 
