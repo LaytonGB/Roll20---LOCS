@@ -5,17 +5,6 @@ export type Roll20Id = string;
 export type Roll20EventLabel = string;
 export type SearchKey = string;
 
-type Roll20ObjectTypeMap = {
-  text: Text;
-  graphic: Graphic;
-  character: Character;
-  attribute: Attribute;
-  ability: Ability;
-  player: Player;
-  macro: Macro;
-  page: Page;
-};
-
 export interface ILocsFactory {
   new: () => ILocs;
 }
@@ -30,6 +19,18 @@ interface ICreateObj {
 }
 
 interface IFindObjs {
+  (properties: { _type: 'text' } & { [property: string]: any }): Text[];
+  (properties: { _type: 'graphic' } & { [property: string]: any }): Graphic[];
+  (
+    properties: { _type: 'character' } & { [property: string]: any }
+  ): Character[];
+  (
+    properties: { _type: 'attribute' } & { [property: string]: any }
+  ): Attribute[];
+  (properties: { _type: 'ability' } & { [property: string]: any }): Ability[];
+  (properties: { _type: 'player' } & { [property: string]: any }): Player[];
+  (properties: { _type: 'macro' } & { [property: string]: any }): Macro[];
+  (properties: { _type: 'page' } & { [property: string]: any }): Page[];
   (properties: { [property: string]: any }): Roll20Object[];
 }
 
@@ -160,32 +161,6 @@ export const Locs: ILocsFactory = (() => {
       return event;
     };
 
-    const castRoll20ObjectToType = <T extends keyof Roll20ObjectTypeMap>(
-      type: ObjectType,
-      object: Roll20Object | undefined
-    ): (Roll20ObjectTypeMap[T] | Roll20Object) | undefined => {
-      switch (type) {
-        case 'text':
-          return object as Roll20ObjectTypeMap['text'] | undefined;
-        case 'graphic':
-          return object as Roll20ObjectTypeMap['graphic'] | undefined;
-        case 'character':
-          return object as Roll20ObjectTypeMap['character'] | undefined;
-        case 'attribute':
-          return object as Roll20ObjectTypeMap['attribute'] | undefined;
-        case 'ability':
-          return object as Roll20ObjectTypeMap['ability'] | undefined;
-        case 'player':
-          return object as Roll20ObjectTypeMap['player'] | undefined;
-        case 'macro':
-          return object as Roll20ObjectTypeMap['macro'] | undefined;
-        case 'page':
-          return object as Roll20ObjectTypeMap['page'] | undefined;
-        default:
-          return object as Roll20Object | undefined;
-      }
-    };
-
     const keyFromSearchArgs = (parameters: {
       [parameter: string]: any;
     }): string => {
@@ -231,6 +206,33 @@ export const Locs: ILocsFactory = (() => {
       }
     }
 
+    function locsFindObjs(
+      properties: { _type: 'text' } & { [property: string]: any }
+    ): Text[];
+    function locsFindObjs(
+      properties: { _type: 'graphic' } & { [property: string]: any }
+    ): Graphic[];
+    function locsFindObjs(
+      properties: { _type: 'character' } & { [property: string]: any }
+    ): Character[];
+    function locsFindObjs(
+      properties: { _type: 'attribute' } & { [property: string]: any }
+    ): Attribute[];
+    function locsFindObjs(
+      properties: { _type: 'ability' } & { [property: string]: any }
+    ): Ability[];
+    function locsFindObjs(
+      properties: { _type: 'player' } & { [property: string]: any }
+    ): Player[];
+    function locsFindObjs(
+      properties: { _type: 'macro' } & { [property: string]: any }
+    ): Macro[];
+    function locsFindObjs(
+      properties: { _type: 'page' } & { [property: string]: any }
+    ): Page[];
+    function locsFindObjs(properties: {
+      [property: string]: any;
+    }): Roll20Object[];
     function locsFindObjs(properties: {
       [property: string]: any;
     }): Roll20Object[] {
@@ -429,7 +431,7 @@ export const Locs: ILocsFactory = (() => {
       if (roll20Result) {
         cacheObject(roll20Result);
       }
-      return castRoll20ObjectToType(type, roll20Result);
+      return roll20Result;
     }
 
     return {
