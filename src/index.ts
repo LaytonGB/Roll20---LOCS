@@ -9,6 +9,13 @@ export interface ILocsFactory {
   new: () => ILocs;
 }
 
+interface IEventHandler {
+  fire(...objs: Roll20Object[]): void;
+  subscribe(callback: (obj: Roll20Object) => void): void;
+  subscribeUntilFired(callback: (obj: Roll20Object) => void): void;
+  unsubscribe(callback: (obj: Roll20Object) => void): void;
+}
+
 interface ICreateObj {
   (type: 'attribute', properties: { [property: string]: any }):
     | Attribute
@@ -73,44 +80,33 @@ export interface ILocs {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const Locs: ILocsFactory = (() => {
-  class EventHandler {
-    private subscribers: [(...objs: Roll20Object[]) => void, boolean][] = [];
+  function getEventHandler(roll20EventLabel: Roll20EventLabel): IEventHandler {
+    const subscribers: [(...objs: Roll20Object[]) => void, boolean][] = [];
 
-    label: Roll20EventLabel;
-
-    constructor(roll20EventLabel: Roll20EventLabel) {
-      this.label = roll20EventLabel;
-
-      // @ts-ignore Does not correctly identify `on` overloads
-      on(roll20EventLabel, this.fire.bind(this));
-    }
-
-    fire(...objs: Roll20Object[]): void {
+    function fire(...objs: Roll20Object[]): void {
       const indexesToRemove: number[] = [];
-      this.subscribers.forEach(
-        ([subscriberCallback, removeAfterFiring], index) => {
-          subscriberCallback(...objs);
-          if (removeAfterFiring) {
-            indexesToRemove.push(index);
-          }
+      subscribers.forEach(([subscriberCallback, removeAfterFiring], index) => {
+        subscriberCallback(...objs);
+        if (removeAfterFiring) {
+          indexesToRemove.push(index);
         }
-      );
+      });
 
       for (const index of indexesToRemove) {
-        this.subscribers.splice(index, 1);
+        subscribers.splice(index, 1);
       }
     }
 
-    subscribe(callback: (obj: Roll20Object) => void): void {
-      this.subscribers.push([callback, false]);
+    function subscribe(callback: (obj: Roll20Object) => void): void {
+      subscribers.push([callback, false]);
     }
 
-    subscribeUntilFired(callback: (obj: Roll20Object) => void): void {
-      this.subscribers.push([callback, true]);
+    function subscribeUntilFired(callback: (obj: Roll20Object) => void): void {
+      subscribers.push([callback, true]);
     }
 
-    unsubscribe(callback: (obj: Roll20Object) => void): void {
-      const foundCallbackIndex = this.subscribers.findIndex(
+    function unsubscribe(callback: (obj: Roll20Object) => void): void {
+      const foundCallbackIndex = subscribers.findIndex(
         ([storedCallback]) => storedCallback === callback
       );
       if (foundCallbackIndex === -1) {
@@ -120,12 +116,22 @@ export const Locs: ILocsFactory = (() => {
         return;
       }
 
-      this.subscribers.splice(foundCallbackIndex, 1);
+      subscribers.splice(foundCallbackIndex, 1);
     }
+
+    // @ts-ignore Does not correctly identify `on` overloads
+    on(roll20EventLabel, fire.bind(this));
+
+    return {
+      fire,
+      subscribe,
+      subscribeUntilFired,
+      unsubscribe,
+    };
   }
 
   const getLocs = (): ILocs => {
-    const eventHandlers = new Map<Roll20EventLabel, EventHandler>();
+    const eventHandlers = new Map<Roll20EventLabel, IEventHandler>();
     const cache = {
       objects: new Map<Roll20Id, Roll20Object>(),
       events: new Map<
@@ -136,7 +142,7 @@ export const Locs: ILocsFactory = (() => {
       filters: new Map<(obj: Roll20Object) => boolean, Roll20Object[]>(),
     };
 
-    const cacheObject = (obj: Roll20Object): void => {
+    function cacheObject(obj: Roll20Object): void {
       cache.objects.set(obj.id, obj);
       if (!cache.events.has(obj.id)) {
         const events = new Map<Roll20EventLabel, (obj: Roll20Object) => void>();
@@ -150,41 +156,41 @@ export const Locs: ILocsFactory = (() => {
         events.set(destroyEventLabel, destroyCallback);
         watchEventOnce(destroyEventLabel, destroyCallback);
       }
-    };
+    }
 
-    const getOrCreateEvent = (eventLabel: Roll20EventLabel): EventHandler => {
+    function getOrCreateEvent(eventLabel: Roll20EventLabel): IEventHandler {
       let event = eventHandlers.get(eventLabel);
       if (!event) {
-        event = new EventHandler(eventLabel);
+        event = getEventHandler(eventLabel);
         eventHandlers.set(eventLabel, event);
       }
       return event;
-    };
+    }
 
-    const keyFromSearchArgs = (parameters: {
+    function keyFromSearchArgs(parameters: {
       [parameter: string]: any;
-    }): string => {
+    }): string {
       return Object.entries(parameters)
         .sort()
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
-    };
+    }
 
-    const watchEvent = (
+    function watchEvent(
       eventLabel: Roll20EventLabel,
       callback: (...objs: Roll20Object[]) => void
-    ): void => {
+    ): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribe(callback);
-    };
+    }
 
-    const watchEventOnce = (
+    function watchEventOnce(
       eventLabel: Roll20EventLabel,
       callback: (obj: Roll20Object) => void
-    ): void => {
+    ): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribeUntilFired(callback);
-    };
+    }
 
     function locsCreateObj(
       type: 'attribute',
