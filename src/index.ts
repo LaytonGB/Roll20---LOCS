@@ -415,6 +415,10 @@ export const Locs: ILocsFactory = (() => {
     function locsGetObj(
       type: ObjectType,
       id: Roll20Id
+    ): Roll20Object | undefined;
+    function locsGetObj(
+      type: ObjectType,
+      id: Roll20Id
     ): Roll20Object | undefined {
       const cacheResult = cache.objects.get(id);
       if (cacheResult) {
