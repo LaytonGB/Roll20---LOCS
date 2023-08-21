@@ -120,7 +120,7 @@ export const Locs: ILocsFactory = (() => {
     }
 
     // @ts-ignore Does not correctly identify `on` overloads
-    on(roll20EventLabel, fire.bind(this));
+    on(roll20EventLabel, fire);
 
     return {
       fire,
