@@ -1,59 +1,96 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const Locs = (() => {
-    class EventHandler {
-        constructor(roll20EventLabel) {
-            this.subscribers = [];
-            this.label = roll20EventLabel;
-            // @ts-ignore Does not correctly identify `on` overloads
-            on(roll20EventLabel, this.fire.bind(this));
-        }
-        fire(...objs) {
+    function getEventHandler(roll20EventLabel) {
+        const subscribers = [];
+        function fire(...objs) {
             const indexesToRemove = [];
-            this.subscribers.forEach(([subscriberCallback, removeAfterFiring], index) => {
+            subscribers.forEach(([subscriberCallback, removeAfterFiring], index) => {
                 subscriberCallback(...objs);
                 if (removeAfterFiring) {
                     indexesToRemove.push(index);
                 }
             });
             for (const index of indexesToRemove) {
-                this.subscribers.splice(index, 1);
+                subscribers.splice(index, 1);
             }
         }
-        subscribe(callback) {
-            this.subscribers.push([callback, false]);
+        function subscribe(callback) {
+            subscribers.push([callback, false]);
         }
-        subscribeUntilFired(callback) {
-            this.subscribers.push([callback, true]);
+        function subscribeUntilFired(callback) {
+            subscribers.push([callback, true]);
         }
-        unsubscribe(callback) {
-            const foundCallbackIndex = this.subscribers.findIndex(([storedCallback]) => storedCallback === callback);
+        function unsubscribe(callback) {
+            const foundCallbackIndex = subscribers.findIndex(([storedCallback]) => storedCallback === callback);
             if (foundCallbackIndex === -1) {
                 log('WARN: cannot unsubscribe a callback function that is not already subscribed');
                 return;
             }
-            this.subscribers.splice(foundCallbackIndex, 1);
+            subscribers.splice(foundCallbackIndex, 1);
         }
+        // @ts-ignore Does not correctly identify `on` overloads
+        on(roll20EventLabel, fire);
+        return {
+            fire,
+            subscribe,
+            subscribeUntilFired,
+            unsubscribe,
+        };
     }
-    class Locs {
-        constructor() {
-            this.eventHandlers = new Map();
-            this.cache = {
-                objects: new Map(),
-                events: new Map(),
-                finds: new Map(),
-                filters: new Map(),
-            };
+    const getLocs = () => {
+        const eventHandlers = new Map();
+        const cache = {
+            objects: new Map(),
+            events: new Map(),
+            finds: new Map(),
+            filters: new Map(),
+        };
+        function cacheObject(obj) {
+            cache.objects.set(obj.id, obj);
+            if (!cache.events.has(obj.id)) {
+                const events = new Map();
+                cache.events.set(obj.id, events);
+                const destroyEventLabel = `destroy:${obj.get('_type')}`;
+                const destroyCallback = () => {
+                    cache.objects.delete(obj.id);
+                    cache.events.delete(obj.id);
+                };
+                events.set(destroyEventLabel, destroyCallback);
+                watchEventOnce(destroyEventLabel, destroyCallback);
+            }
         }
-        createObj(type, properties) {
+        function getOrCreateEvent(eventLabel) {
+            let event = eventHandlers.get(eventLabel);
+            if (!event) {
+                event = getEventHandler(eventLabel);
+                eventHandlers.set(eventLabel, event);
+            }
+            return event;
+        }
+        function keyFromSearchArgs(parameters) {
+            return Object.entries(parameters)
+                .sort()
+                .map(([key, value]) => `${key}=${value}`)
+                .join('&');
+        }
+        function watchEvent(eventLabel, callback) {
+            const event = getOrCreateEvent(eventLabel);
+            event.subscribe(callback);
+        }
+        function watchEventOnce(eventLabel, callback) {
+            const event = getOrCreateEvent(eventLabel);
+            event.subscribeUntilFired(callback);
+        }
+        function locsCreateObj(type, properties) {
             // @ts-ignore not assignable error because of roll20 types
             const newObject = createObj(type, properties);
             if (newObject) {
-                this.cacheObject(newObject);
+                cacheObject(newObject);
                 return newObject;
             }
         }
-        findObjs(properties) {
+        function locsFindObjs(properties) {
             function isMatch(obj) {
                 for (const [property, value] of Object.entries(properties)) {
                     if (obj.get(property) !== value) {
@@ -62,17 +99,17 @@ const Locs = (() => {
                 }
                 return true;
             }
-            const cacheKey = this.keyFromSearchArgs(properties);
-            const cacheResult = this.cache.finds.get(cacheKey);
+            const cacheKey = keyFromSearchArgs(properties);
+            const cacheResult = cache.finds.get(cacheKey);
             if (cacheResult) {
                 return cacheResult;
             }
             const roll20Result = findObjs(properties);
-            roll20Result.forEach((obj) => this.cacheObject(obj));
+            roll20Result.forEach((obj) => cacheObject(obj));
             const newCacheValue = roll20Result;
-            this.cache.finds.set(cacheKey, newCacheValue);
+            cache.finds.set(cacheKey, newCacheValue);
             const eventsForThisSearch = new Map();
-            this.cache.events.set(cacheKey, eventsForThisSearch);
+            cache.events.set(cacheKey, eventsForThisSearch);
             eventsForThisSearch.set(`add:${properties._type}`, (obj) => {
                 if (isMatch(obj)) {
                     newCacheValue.push(obj);
@@ -102,17 +139,19 @@ const Locs = (() => {
                 }
             });
             for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
-                this.watchEvent(eventLabel, callback);
+                watchEvent(eventLabel, callback);
             }
             return roll20Result;
         }
-        filterObjs(callback) {
-            const cachedResults = this.cache.filters.get(callback);
+        // TODO WARNING this can fail if the callback references a changing variable
+        // at least warn users of this
+        function locsFilterObjs(callback) {
+            const cachedResults = cache.filters.get(callback);
             if (cachedResults) {
                 return cachedResults;
             }
             const newCacheResults = filterObjs(callback);
-            this.cache.filters.set(callback, newCacheResults);
+            cache.filters.set(callback, newCacheResults);
             const allObjectTypes = [
                 'graphic',
                 'text',
@@ -129,12 +168,12 @@ const Locs = (() => {
                 'page',
             ];
             allObjectTypes.forEach((objType) => {
-                this.watchEvent(`add:${objType}`, (obj) => {
+                watchEvent(`add:${objType}`, (obj) => {
                     if (callback(obj)) {
                         newCacheResults.push(obj);
                     }
                 });
-                this.watchEvent(`change:${objType}`, (obj, oldObj) => {
+                watchEvent(`change:${objType}`, (obj, oldObj) => {
                     const doesMatch = callback(obj);
                     const didMatch = callback(oldObj);
                     if (doesMatch) {
@@ -151,7 +190,7 @@ const Locs = (() => {
                         }
                     }
                 });
-                this.watchEvent(`destroy:${objType}`, (obj) => {
+                watchEvent(`destroy:${objType}`, (obj) => {
                     if (callback(obj)) {
                         const foundObjIndex = newCacheResults.indexOf(obj);
                         if (foundObjIndex !== -1) {
@@ -162,76 +201,48 @@ const Locs = (() => {
             });
             return newCacheResults;
         }
-        getAttrByName(character_id, attribute_name, value_type = 'current') {
-            const attrObj = this.getAttrObjByName(character_id, attribute_name);
+        function locsGetAttrByName(character_id, attribute_name, value_type = 'current') {
+            const attrObj = locsGetAttrObjByName(character_id, attribute_name);
             if (!attrObj) {
                 return '';
             }
             return attrObj.get(value_type);
         }
         // TODO RESEARCH does roll20 manage duplicate named attributes?
-        getAttrObjByName(character_id, attribute_name) {
+        function locsGetAttrObjByName(character_id, attribute_name) {
             const searchArgs = {
                 _type: 'attribute',
                 _characterid: character_id,
                 name: attribute_name,
             };
-            const searchResults = this.findObjs(searchArgs);
+            const searchResults = locsFindObjs(searchArgs);
             if (searchResults.length > 0) {
                 const foundAttribute = searchResults[0];
-                this.cacheObject(foundAttribute);
+                cacheObject(foundAttribute);
                 return foundAttribute;
             }
         }
-        getObj(type, id) {
-            const cacheResult = this.cache.objects.get(id);
+        function locsGetObj(type, id) {
+            const cacheResult = cache.objects.get(id);
             if (cacheResult) {
                 return cacheResult;
             }
             const roll20Result = getObj(type, id);
             if (roll20Result) {
-                this.cacheObject(roll20Result);
+                cacheObject(roll20Result);
             }
             return roll20Result;
         }
-        cacheObject(obj) {
-            this.cache.objects.set(obj.id, obj);
-            if (!this.cache.events.has(obj.id)) {
-                const events = new Map();
-                this.cache.events.set(obj.id, events);
-                const destroyEventLabel = `destroy:${obj.get('_type')}`;
-                const destroyCallback = () => {
-                    this.cache.objects.delete(obj.id);
-                    this.cache.events.delete(obj.id);
-                };
-                events.set(destroyEventLabel, destroyCallback);
-                this.watchEventOnce(destroyEventLabel, destroyCallback);
-            }
-        }
-        getOrCreateEvent(eventLabel) {
-            let event = this.eventHandlers.get(eventLabel);
-            if (!event) {
-                event = new EventHandler(eventLabel);
-                this.eventHandlers.set(eventLabel, event);
-            }
-            return event;
-        }
-        keyFromSearchArgs(parameters) {
-            return Object.entries(parameters)
-                .sort()
-                .map(([key, value]) => `${key}=${value}`)
-                .join('&');
-        }
-        watchEvent(eventLabel, callback) {
-            const event = this.getOrCreateEvent(eventLabel);
-            event.subscribe(callback);
-        }
-        watchEventOnce(eventLabel, callback) {
-            const event = this.getOrCreateEvent(eventLabel);
-            event.subscribeUntilFired(callback);
-        }
-    }
+        return {
+            createObj: locsCreateObj,
+            findObjs: locsFindObjs,
+            filterObjs: locsFilterObjs,
+            getAttrByName: locsGetAttrByName,
+            getAttrObjByName: locsGetAttrObjByName,
+            getObj: locsGetObj,
+        };
+    };
     return {
-        new: () => new Locs(),
+        new: () => getLocs(),
     };
 })();

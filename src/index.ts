@@ -130,7 +130,7 @@ export const Locs: ILocsFactory = (() => {
     };
   }
 
-  const getLocs = (): ILocs => {
+  function getLocs(): ILocs {
     const eventHandlers = new Map<Roll20EventLabel, IEventHandler>();
     const cache = {
       objects: new Map<Roll20Id, Roll20Object>(),
@@ -448,7 +448,7 @@ export const Locs: ILocsFactory = (() => {
       getAttrObjByName: locsGetAttrObjByName,
       getObj: locsGetObj,
     };
-  };
+  }
 
   return {
     new: () => getLocs(),

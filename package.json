@@ -1,21 +1,24 @@
 {
-  "name": "locs",
+  "name": "@types/roll20-locs",
   "version": "1.0.0",
   "description": "An API for Roll20.net to enable the automatic caching of tokens, their positions, and specific token attributes.",
-  "main": "locs.js",
+  "main": "index.d.ts",
   "scripts": {
     "build": "npm run build:index & npm run build:types",
+    "test": "jest",
+    "lint": "prettier ./**/*.ts --check && eslint ./**/*.ts",
+    "lint:fix": "prettier ./**/*.ts --write && eslint ./**/*.ts --fix",
 
     "build:index": "npm run create-target-file-without-exports & npm run build-generated-target-file & npm run delete-generated-target-file",
     "create-target-file-without-exports": "sed -E \"s/export\\s+//g\" ./src/index.ts > ./src/target.ts",
     "build-generated-target-file": "tsc ./src/target.ts --outFile ./locs.js --target es2019 --module amd",
     "delete-generated-target-file": "rm ./src/target.ts",
 
-    "build:types": "npm run create-types-file-with-declarations & npm run build-types-file & npm run delete-built-types-file & create-types-link",
+    "build:types": "npm run create-types-file-with-declarations & npm run build-types-file & npm run delete-built-types-file & npm run create-types-link",
     "create-types-file-with-declarations": "sed -E \"s/export(\\s+)/declare\\1/g\" ./src/index.ts > ./src/types.ts",
-    "build-types-file": "tsc ./src/types.ts --outFile ../@types/locs/index.d.ts --declaration --emitDeclarationOnly --target es2019 --module amd",
+    "build-types-file": "tsc ./src/types.ts --outFile ./index.d.ts --declaration --emitDeclarationOnly --target es2019 --module amd",
     "delete-built-types-file": "rm ./src/types.ts",
-    "create-types-link": "cd ../@types/locs & npm link"
+    "create-types-link": "npm link"
   },
   "repository": {
     "type": "git",
@@ -28,7 +31,17 @@
   },
   "homepage": "https://gitlab.com/LaytonGB/token-state-api#readme",
   "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/lodash": "^4.14.196",
     "@types/roll20": "github:LaytonGB/types-roll20",
-    "typescript": "^5.1.6"
+    "@typescript-eslint/eslint-plugin": "^5.60.1",
+    "@typescript-eslint/parser": "^5.60.1",
+    "eslint": "^8.43.0",
+    "jest": "^29.6.1",
+    "lodash": "^4.17.21",
+    "prettier": "^2.8.8",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.5"
   }
 }
