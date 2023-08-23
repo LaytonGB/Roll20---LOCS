@@ -14,12 +14,19 @@
         "@typescript-eslint"
     ],
     "rules": {
+        "arrow-body-style": [
+            "warn",
+            "as-needed"
+        ],
+        "@typescript-eslint/explicit-function-return-type": "warn",
         "linebreak-style": [
             "warn",
             "unix"
         ],
+        "no-confusing-arrow": "warn",
         "@typescript-eslint/no-explicit-any": 0,
         "no-trailing-spaces": "warn",
+        "prefer-arrow-callback": "warn",
         "quotes": [
             "warn",
             "single"

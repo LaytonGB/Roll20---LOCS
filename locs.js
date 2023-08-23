@@ -38,7 +38,7 @@ const Locs = (() => {
             unsubscribe,
         };
     }
-    const getLocs = () => {
+    function getLocs() {
         const eventHandlers = new Map();
         const cache = {
             objects: new Map(),
@@ -241,7 +241,7 @@ const Locs = (() => {
             getAttrObjByName: locsGetAttrObjByName,
             getObj: locsGetObj,
         };
-    };
+    }
     return {
         new: () => getLocs(),
     };

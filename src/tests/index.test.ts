@@ -364,11 +364,9 @@ describe('findObjs', () => {
 
 describe('filterObjs', () => {
   function newBasicFilterFromParams(params: { [param: string]: any }) {
-    return (obj: Roll20Object) => {
-      return Object.entries(params).every(
+    return (obj: Roll20Object) => Object.entries(params).every(
         ([param, value]) => obj.get(param) === value
       );
-    };
   }
 
   const objSearchType = 'graphic';
@@ -462,13 +460,11 @@ describe('filterObjs', () => {
     });
 
     it('removes entries from cache when matching object destroyed', () => {
-      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
-        return new MockRoll20Object(
+      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => new MockRoll20Object(
           objType,
           `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
           { test: true }
-        );
-      });
+        ));
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
@@ -496,13 +492,11 @@ describe('filterObjs', () => {
     });
 
     it('adds new results to cache when object changed to match', () => {
-      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
-        return new MockRoll20Object(
+      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => new MockRoll20Object(
           objType,
           `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
           { test: false }
-        );
-      });
+        ));
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
@@ -524,13 +518,11 @@ describe('filterObjs', () => {
     });
 
     it('removes results when existing entry changed to not match', () => {
-      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => {
-        return new MockRoll20Object(
+      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => new MockRoll20Object(
           objType,
           `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
           { test: true }
-        );
-      });
+        ));
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {

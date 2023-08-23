@@ -4,7 +4,8 @@
   "description": "An API for Roll20.net to enable the automatic caching of tokens, their positions, and specific token attributes.",
   "main": "index.d.ts",
   "scripts": {
-    "build": "npm run build:index & npm run build:types",
+    "build": "npm run test && npm run lint:fix && npm run build:nocheck",
+    "build:nocheck": "npm run build:index & npm run build:types & npm run create-link",
     "test": "jest",
     "lint": "prettier ./**/*.ts --check && eslint ./**/*.ts",
     "lint:fix": "prettier ./**/*.ts --write && eslint ./**/*.ts --fix",
@@ -14,11 +15,12 @@
     "build-generated-target-file": "tsc ./src/target.ts --outFile ./locs.js --target es2019 --module amd",
     "delete-generated-target-file": "rm ./src/target.ts",
 
-    "build:types": "npm run create-types-file-with-declarations & npm run build-types-file & npm run delete-built-types-file & npm run create-types-link",
+    "build:types": "npm run create-types-file-with-declarations & npm run build-types-file & npm run delete-built-types-file",
     "create-types-file-with-declarations": "sed -E \"s/export(\\s+)/declare\\1/g\" ./src/index.ts > ./src/types.ts",
     "build-types-file": "tsc ./src/types.ts --outFile ./index.d.ts --declaration --emitDeclarationOnly --target es2019 --module amd",
     "delete-built-types-file": "rm ./src/types.ts",
-    "create-types-link": "npm link"
+
+    "create-link": "npm link"
   },
   "repository": {
     "type": "git",

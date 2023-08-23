@@ -34,7 +34,7 @@ function findObjs(
   const allObjects = mockValues.mockRequestResults.values();
   const checkFunc = options?.caseInsensitive
     ? (a: any, b: any) =>
-        typeof a === 'string' ? a.toLowerCase() === b.toLowerCase() : a === b
+        (typeof a === 'string' ? a.toLowerCase() === b.toLowerCase() : a === b)
     : (a: any, b: any) => a === b;
   outer: for (const currentObject of allObjects) {
     for (const [property, searchValue] of Object.entries(properties)) {

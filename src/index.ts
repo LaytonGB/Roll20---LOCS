@@ -79,7 +79,7 @@ export interface ILocs {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const Locs: ILocsFactory = (() => {
+export const Locs = ((): ILocsFactory => {
   function getEventHandler(roll20EventLabel: Roll20EventLabel): IEventHandler {
     const subscribers: [(...objs: Roll20Object[]) => void, boolean][] = [];
 
@@ -149,7 +149,7 @@ export const Locs: ILocsFactory = (() => {
         cache.events.set(obj.id, events);
 
         const destroyEventLabel = `destroy:${obj.get('_type')}`;
-        const destroyCallback = () => {
+        const destroyCallback = (): void => {
           cache.objects.delete(obj.id);
           cache.events.delete(obj.id);
         };
@@ -242,7 +242,7 @@ export const Locs: ILocsFactory = (() => {
     function locsFindObjs(properties: {
       [property: string]: any;
     }): Roll20Object[] {
-      function isMatch(obj: Roll20Object) {
+      function isMatch(obj: Roll20Object): boolean {
         for (const [property, value] of Object.entries(properties)) {
           if (obj.get(property) !== value) {
             return false;
