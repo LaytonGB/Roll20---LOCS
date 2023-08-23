@@ -11,10 +11,9 @@ import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
 global.createObj = (): void => undefined;
-const createObjMock = jest.fn<
-  Roll20Object | undefined,
-  [ObjectType, { [property: string]: any }]
->(mockFunctions.createObj);
+const createObjMock = jest.fn<Roll20Object | undefined, [ObjectType, { [property: string]: any }]>(
+  mockFunctions.createObj
+);
 const createObjSpy = jest
   .spyOn(global, 'createObj')
   // @ts-ignore CreateObj overload causing bad-selection error
@@ -22,36 +21,23 @@ const createObjSpy = jest
 
 // @ts-ignore
 global.getObj = (): void => undefined;
-const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(
-  mockFunctions.getObj
-);
+const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(mockFunctions.getObj);
 const getObjSpy = jest.spyOn(global, 'getObj').mockImplementation(getObjMock);
 
 // @ts-ignore
 global.findObjs = (): void => undefined;
-const findObjsMock = jest.fn<Roll20Object[], [{ [property: string]: any }]>(
-  mockFunctions.findObjs
-);
-const findObjsSpy = jest
-  .spyOn(global, 'findObjs')
-  .mockImplementation(findObjsMock);
+const findObjsMock = jest.fn<Roll20Object[], [{ [property: string]: any }]>(mockFunctions.findObjs);
+const findObjsSpy = jest.spyOn(global, 'findObjs').mockImplementation(findObjsMock);
 
 // @ts-ignore
 global.filterObjs = (): void => undefined;
-const filterObjsMock = jest.fn<
-  Roll20Object[],
-  [(obj: Roll20Object) => boolean]
->(mockFunctions.filterObjs);
-const filterObjsSpy = jest
-  .spyOn(global, 'filterObjs')
-  .mockImplementation(filterObjsMock);
+const filterObjsMock = jest.fn<Roll20Object[], [(obj: Roll20Object) => boolean]>(mockFunctions.filterObjs);
+const filterObjsSpy = jest.spyOn(global, 'filterObjs').mockImplementation(filterObjsMock);
 
 const { triggerEvent, on } = mockFunctions.getOnFunctions();
 // @ts-ignore
 global.on = (): void => undefined;
-const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
-  on
-);
+const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(on);
 // @ts-ignore On overload causing bad-selection error
 /* const onSpy = */ jest.spyOn(global, 'on').mockImplementation(onMock);
 
@@ -91,7 +77,7 @@ describe('object fetching', () => {
 describe('object and property caching', () => {
   const getArgsType = 'graphic';
   const getArgsId = MockObjectName.MOCK_GRAPHIC;
-  const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
+  const getArgs: ['graphic', string] = [getArgsType, getArgsId];
 
   let locs: ILocs;
   beforeEach(() => {
@@ -175,12 +161,9 @@ describe('createObj', () => {
 });
 
 describe('findObjs', () => {
-  const objSearchResultIds = [
-    MockObjectName.CREATED_GRAPHIC,
-    MockObjectName.MOCK_GRAPHIC,
-  ];
+  const objSearchResultIds = [MockObjectName.CREATED_GRAPHIC, MockObjectName.MOCK_GRAPHIC];
 
-  const objSearchType = 'graphic';
+  const objSearchType = 'graphic' as ObjectType;
   const objSearchParams = {
     _type: objSearchType,
     top: mockValues.mockObjectConstants.mockGraphicTop,
@@ -279,9 +262,7 @@ describe('findObjs', () => {
 
     it('removes entries from cache when matching object destroyed', () => {
       const idToBeRemoved = findObjsResults[0].id;
-      const objToBeRemoved = mockValues.mockRequestResults.get(
-        idToBeRemoved
-      ) as Roll20Object;
+      const objToBeRemoved = mockValues.mockRequestResults.get(idToBeRemoved) as Roll20Object;
 
       triggerEvent('destroy', 'graphic', objToBeRemoved);
 
@@ -291,71 +272,40 @@ describe('findObjs', () => {
     });
 
     it('adds new results to cache when object changed to match', () => {
-      const createdObj: Roll20Object = new MockRoll20Object(
-        objSearchType,
-        `FINDOBJS_CACHE_CREATED_${objSearchType}`,
-        { top: 180 }
-      );
-      triggerEvent(
-        'add',
-        `${createdObj.get('_type') as ObjectType}`,
-        createdObj
-      );
+      const createdObj: Roll20Object = new MockRoll20Object(objSearchType, `FINDOBJS_CACHE_CREATED_${objSearchType}`, {
+        top: 180,
+      });
+      triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
-      const initialFindObjsResultsLength =
-        locs.findObjs(objSearchParams).length;
+      const initialFindObjsResultsLength = locs.findObjs(objSearchParams).length;
 
       const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', objSearchParams.top);
-      triggerEvent(
-        'change',
-        `${createdObj.get('_type') as ObjectType}`,
-        createdObj,
-        oldObj
-      );
+      triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-      expect(locs.findObjs(objSearchParams)).toHaveLength(
-        initialFindObjsResultsLength + 1
-      );
+      expect(locs.findObjs(objSearchParams)).toHaveLength(initialFindObjsResultsLength + 1);
     });
 
     it('removes results when existing entry changed to not match', () => {
-      const createdObj: Roll20Object = new MockRoll20Object(
-        objSearchType,
-        `FINDOBJS_CACHE_CREATED_${objSearchType}`,
-        { top: objSearchParams.top }
-      );
-      triggerEvent(
-        'add',
-        `${createdObj.get('_type') as ObjectType}`,
-        createdObj
-      );
+      const createdObj: Roll20Object = new MockRoll20Object(objSearchType, `FINDOBJS_CACHE_CREATED_${objSearchType}`, {
+        top: objSearchParams.top,
+      });
+      triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
-      const initialFindObjsResultsLength =
-        locs.findObjs(objSearchParams).length;
+      const initialFindObjsResultsLength = locs.findObjs(objSearchParams).length;
 
       const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', 180);
-      triggerEvent(
-        'change',
-        `${createdObj.get('_type') as ObjectType}`,
-        createdObj,
-        oldObj
-      );
+      triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-      expect(locs.findObjs(objSearchParams)).toHaveLength(
-        initialFindObjsResultsLength - 1
-      );
+      expect(locs.findObjs(objSearchParams)).toHaveLength(initialFindObjsResultsLength - 1);
     });
   });
 });
 
 describe('filterObjs', () => {
   function newBasicFilterFromParams(params: { [param: string]: any }) {
-    return (obj: Roll20Object): boolean =>
-      Object.entries(params).every(
-        ([param, value]) => obj.get(param) === value
-      );
+    return (obj: Roll20Object): boolean => Object.entries(params).every(([param, value]) => obj.get(param) === value);
   }
 
   const objSearchType = 'graphic';
@@ -369,9 +319,7 @@ describe('filterObjs', () => {
     _type: 'page',
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
-  const noResultsSearchFilterFunc = newBasicFilterFromParams(
-    noResultsSearchParams
-  );
+  const noResultsSearchFilterFunc = newBasicFilterFromParams(noResultsSearchParams);
 
   let locs: ILocs;
   beforeEach(() => {
@@ -429,124 +377,71 @@ describe('filterObjs', () => {
 
     it('adds new results to cache when any matching object created', () => {
       allObjectTypes.forEach((objType) => {
-        const initialFilterObjsResultsLength =
-          locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
           'add',
           `${objType}`,
-          new MockRoll20Object(
-            objType,
-            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-            { test: true }
-          )
+          new MockRoll20Object(objType, `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`, { test: true })
         );
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
-          initialFilterObjsResultsLength + 1
-        );
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength + 1);
       });
     });
 
     it('removes entries from cache when matching object destroyed', () => {
       const createdObjs: Roll20Object[] = allObjectTypes.map(
-        (objType) =>
-          new MockRoll20Object(
-            objType,
-            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-            { test: true }
-          )
+        (objType) => new MockRoll20Object(objType, `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`, { test: true })
       );
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
-        triggerEvent(
-          'add',
-          `${createdObj.get('_type') as ObjectType}`,
-          createdObj
-        );
+        triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
       });
 
       createdObjs.forEach((createdObj) => {
-        const initialFilterObjsResultsLength =
-          locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
 
-        triggerEvent(
-          'destroy',
-          `${createdObj.get('_type') as ObjectType}`,
-          createdObj
-        );
+        triggerEvent('destroy', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
-          initialFilterObjsResultsLength - 1
-        );
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength - 1);
       });
     });
 
     it('adds new results to cache when object changed to match', () => {
       const createdObjs: Roll20Object[] = allObjectTypes.map(
-        (objType) =>
-          new MockRoll20Object(
-            objType,
-            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-            { test: false }
-          )
+        (objType) => new MockRoll20Object(objType, `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`, { test: false })
       );
 
       createdObjs.forEach((createdObj) => {
-        const initialFilterObjsResultsLength =
-          locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
 
         const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', true);
-        triggerEvent(
-          'change',
-          `${createdObj.get('_type') as ObjectType}`,
-          createdObj,
-          oldObj
-        );
+        triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
-          initialFilterObjsResultsLength + 1
-        );
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength + 1);
       });
     });
 
     it('removes results when existing entry changed to not match', () => {
       const createdObjs: Roll20Object[] = allObjectTypes.map(
-        (objType) =>
-          new MockRoll20Object(
-            objType,
-            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-            { test: true }
-          )
+        (objType) => new MockRoll20Object(objType, `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`, { test: true })
       );
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
-        triggerEvent(
-          'add',
-          `${createdObj.get('_type') as ObjectType}`,
-          createdObj
-        );
+        triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
       });
 
       createdObjs.forEach((createdObj) => {
-        const initialFilterObjsResultsLength =
-          locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
 
         const oldObj = _.cloneDeep(createdObj);
         createdObj.set('test', false);
-        triggerEvent(
-          'change',
-          `${createdObj.get('_type') as ObjectType}`,
-          createdObj,
-          oldObj
-        );
+        triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(
-          initialFilterObjsResultsLength - 1
-        );
+        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength - 1);
       });
     });
   });
