@@ -7,8 +7,8 @@
     "build": "npm run test && npm run lint:fix && npm run build:nocheck",
     "build:nocheck": "npm run build:index & npm run build:types & npm run create-link",
     "test": "jest",
-    "lint": "prettier ./**/*.ts --check && eslint ./**/*.ts",
-    "lint:fix": "prettier ./**/*.ts --write && eslint ./**/*.ts --fix",
+    "lint": "prettier ./src/**/*.ts --check && eslint ./src/**/*.ts",
+    "lint:fix": "prettier ./src/**/*.ts --write && eslint ./src/**/*.ts --fix",
 
     "build:index": "npm run create-target-file-without-exports & npm run build-generated-target-file & npm run delete-generated-target-file",
     "create-target-file-without-exports": "sed -E \"s/export\\s+//g\" ./src/index.ts > ./src/target.ts",

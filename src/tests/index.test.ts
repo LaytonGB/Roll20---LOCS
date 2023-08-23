@@ -10,9 +10,7 @@ import { ILocs, Roll20EventLabel, Locs } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
-global.createObj = () => {
-  return;
-};
+global.createObj = (): void => undefined;
 const createObjMock = jest.fn<
   Roll20Object | undefined,
   [ObjectType, { [property: string]: any }]
@@ -23,18 +21,14 @@ const createObjSpy = jest
   .mockImplementation(createObjMock);
 
 // @ts-ignore
-global.getObj = () => {
-  return;
-};
+global.getObj = (): void => undefined;
 const getObjMock = jest.fn<Roll20Object | undefined, [ObjectType, string]>(
   mockFunctions.getObj
 );
 const getObjSpy = jest.spyOn(global, 'getObj').mockImplementation(getObjMock);
 
 // @ts-ignore
-global.findObjs = () => {
-  return;
-};
+global.findObjs = (): void => undefined;
 const findObjsMock = jest.fn<Roll20Object[], [{ [property: string]: any }]>(
   mockFunctions.findObjs
 );
@@ -43,9 +37,7 @@ const findObjsSpy = jest
   .mockImplementation(findObjsMock);
 
 // @ts-ignore
-global.filterObjs = () => {
-  return;
-};
+global.filterObjs = (): void => undefined;
 const filterObjsMock = jest.fn<
   Roll20Object[],
   [(obj: Roll20Object) => boolean]
@@ -56,18 +48,14 @@ const filterObjsSpy = jest
 
 const { triggerEvent, on } = mockFunctions.getOnFunctions();
 // @ts-ignore
-global.on = () => {
-  return;
-};
+global.on = (): void => undefined;
 const onMock = jest.fn<void, [Roll20EventLabel, (obj: Roll20Object) => void]>(
   on
 );
 // @ts-ignore On overload causing bad-selection error
 /* const onSpy = */ jest.spyOn(global, 'on').mockImplementation(onMock);
 
-global.log = () => {
-  return;
-};
+global.log = (): void => undefined;
 const logMock = jest.fn<void, [string]>(mockFunctions.log);
 /* const logSpy = */ jest.spyOn(global, 'log').mockImplementation(logMock);
 
@@ -364,7 +352,8 @@ describe('findObjs', () => {
 
 describe('filterObjs', () => {
   function newBasicFilterFromParams(params: { [param: string]: any }) {
-    return (obj: Roll20Object) => Object.entries(params).every(
+    return (obj: Roll20Object): boolean =>
+      Object.entries(params).every(
         ([param, value]) => obj.get(param) === value
       );
   }
@@ -460,11 +449,14 @@ describe('filterObjs', () => {
     });
 
     it('removes entries from cache when matching object destroyed', () => {
-      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => new MockRoll20Object(
-          objType,
-          `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-          { test: true }
-        ));
+      const createdObjs: Roll20Object[] = allObjectTypes.map(
+        (objType) =>
+          new MockRoll20Object(
+            objType,
+            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
+            { test: true }
+          )
+      );
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
@@ -492,11 +484,14 @@ describe('filterObjs', () => {
     });
 
     it('adds new results to cache when object changed to match', () => {
-      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => new MockRoll20Object(
-          objType,
-          `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-          { test: false }
-        ));
+      const createdObjs: Roll20Object[] = allObjectTypes.map(
+        (objType) =>
+          new MockRoll20Object(
+            objType,
+            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
+            { test: false }
+          )
+      );
 
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength =
@@ -518,11 +513,14 @@ describe('filterObjs', () => {
     });
 
     it('removes results when existing entry changed to not match', () => {
-      const createdObjs: Roll20Object[] = allObjectTypes.map((objType) => new MockRoll20Object(
-          objType,
-          `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
-          { test: true }
-        ));
+      const createdObjs: Roll20Object[] = allObjectTypes.map(
+        (objType) =>
+          new MockRoll20Object(
+            objType,
+            `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`,
+            { test: true }
+          )
+      );
 
       // fill filterObjs results with a result of each type
       createdObjs.forEach((createdObj) => {
