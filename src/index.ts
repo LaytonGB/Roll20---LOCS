@@ -139,13 +139,10 @@ export const Locs = ((): ILocsFactory => {
         .join('&');
     }
 
-    function roll20ObjectPropertiesAsObject<T extends Roll20Object>(obj: NonNullable<any>): T {
+    function roll20ObjectPropertiesAsObject<T extends Roll20Object>(obj: ObjectPropertyMap[T['_type']]): T {
       return {
-        id: obj.id,
-        remove: (): void => undefined,
-        get: (property: string): any => obj[property],
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        set: (property: string, value: any): void => undefined,
+        id: obj._id,
+        get: (property: keyof ObjectPropertyMap[T['_type']]): any => obj[property],
       } as T;
     }
 
@@ -212,28 +209,34 @@ export const Locs = ((): ILocsFactory => {
       const eventsForThisSearch = new Map();
       cache.events.set(cacheKey, eventsForThisSearch);
 
-      eventsForThisSearch.set(`add:${properties._type}`, (obj: Roll20Object) => {
+      const objType = properties._type as ObjectType;
+
+      eventsForThisSearch.set(`add:${objType}`, (obj: Roll20Object) => {
         if (isMatch(obj)) {
           newCacheValue.push(obj);
         }
       });
 
-      eventsForThisSearch.set(`change:${properties._type}`, (obj: Roll20Object, oldObj: Roll20Object) => {
-        const doesMatch = isMatch(obj);
-        const didMatch = isMatch(oldObj);
-        if (doesMatch) {
-          if (!didMatch) {
-            newCacheValue.push(obj);
-          }
-        } else {
-          if (didMatch) {
-            const foundObjectIndex = newCacheValue.indexOf(obj);
-            if (foundObjectIndex !== -1) {
-              newCacheValue.splice(foundObjectIndex, 1);
+      eventsForThisSearch.set(
+        `change:${objType}`,
+        (obj: ObjectTypeMap[typeof objType], oldObj: ObjectPropertyMap[typeof objType]) => {
+          const doesMatch = isMatch(obj);
+          const reconstructedOldObj = roll20ObjectPropertiesAsObject<typeof obj>(oldObj);
+          const didMatch = isMatch(reconstructedOldObj);
+          if (doesMatch) {
+            if (!didMatch) {
+              newCacheValue.push(obj);
+            }
+          } else {
+            if (didMatch) {
+              const foundObjectIndex = newCacheValue.indexOf(obj);
+              if (foundObjectIndex !== -1) {
+                newCacheValue.splice(foundObjectIndex, 1);
+              }
             }
           }
         }
-      });
+      );
 
       eventsForThisSearch.set(`destroy:${properties._type}`, (obj: Roll20Object) => {
         const foundObjectIndex = newCacheValue.indexOf(obj);

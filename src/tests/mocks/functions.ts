@@ -76,16 +76,21 @@ function getObj(type: ObjectType, id: string): Roll20Object | undefined {
 }
 
 interface TriggerEvent {
-  (eventType: 'add', objectType: ObjectType, obj: Roll20Object): void;
-  (eventType: 'change', objectType: ObjectType, obj: Roll20Object, oldObj: Roll20Object): void;
-  (eventType: 'destroy', objectType: ObjectType, obj: Roll20Object): void;
+  (eventType: 'add' | 'destroy', objectType: ObjectType, obj: Roll20Object): void;
+  <T extends ObjectType>(eventType: 'change', objectType: T, obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]): void;
 }
 
-function getTriggerEventWithBoundEvents(events: Map<string, ((...objs: Roll20Object[]) => void)[]>): TriggerEvent {
-  function triggerEvent(eventType: 'add', objectType: ObjectType, obj: Roll20Object): void;
-  function triggerEvent(eventType: 'change', objectType: ObjectType, obj: Roll20Object, oldObj: Roll20Object): void;
-  function triggerEvent(eventType: 'destroy', objectType: ObjectType, obj: Roll20Object): void;
-  function triggerEvent(eventType: EventType, objectType: ObjectType, ...objs: Roll20Object[]): void {
+function getTriggerEventWithBoundEvents(
+  events: Map<string, ((...objs: (Roll20Object | object)[]) => void)[]>
+): TriggerEvent {
+  function triggerEvent(eventType: 'add' | 'destroy', objectType: ObjectType, obj: Roll20Object): void;
+  function triggerEvent<T extends ObjectType>(
+    eventType: 'change',
+    objectType: T,
+    obj: ObjectTypeMap[T],
+    oldObj: ObjectPropertyMap[T]
+  ): void;
+  function triggerEvent(eventType: EventType, objectType: ObjectType, ...objs: (Roll20Object | object)[]): void {
     const eventLabel: Roll20EventLabel = `${eventType}:${objectType}`;
     events.get(eventLabel)?.forEach((callback) => callback(...objs));
   }
@@ -120,7 +125,7 @@ interface GetOnFunctions {
 }
 
 function getOnFunctions(): GetOnFunctions {
-  const events = new Map<Roll20EventLabel, ((...objs: Roll20Object[]) => void)[]>();
+  const events = new Map<Roll20EventLabel, ((...objs: (Roll20Object | object)[]) => void)[]>();
 
   return {
     triggerEvent: getTriggerEventWithBoundEvents(events),

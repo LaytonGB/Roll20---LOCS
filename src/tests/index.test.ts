@@ -297,7 +297,7 @@ describe('findObjs', () => {
 
       const initialFindObjsResultsLength = locs.findObjs(objSearchParams).length;
 
-      const oldObj = _.cloneDeep(createdObj);
+      const oldObj = { _type: createdObj._type, _id: createdObj._id, top: createdObj.get('top') };
       createdObj.set('top', 180);
       triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
@@ -419,7 +419,7 @@ describe('filterObjs', () => {
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
 
-        const oldObj = _.cloneDeep(createdObj);
+        const oldObj = { _type: createdObj._type, _id: createdObj.id, test: createdObj.get('test') };
         createdObj.set('test', true);
         triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
@@ -440,7 +440,7 @@ describe('filterObjs', () => {
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
 
-        const oldObj = _.cloneDeep(createdObj);
+        const oldObj = { _type: createdObj._type, _id: createdObj.id, test: createdObj.get('test') };
         createdObj.set('test', false);
         triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
@@ -459,7 +459,7 @@ describe('getAttrByName and getAttrObjByName', () => {
     locs = Locs.new();
   });
 
-  it('getAttrObjByName caches each search', () => {
+  test('getAttrObjByName caches each search', () => {
     locs.getAttrObjByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
     locs.getAttrObjByName(...getAttrArgs);
@@ -467,7 +467,7 @@ describe('getAttrByName and getAttrObjByName', () => {
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
-  it('getAttrByName caches each search', () => {
+  test('getAttrByName caches each search', () => {
     locs.getAttrByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
     locs.getAttrByName(...getAttrArgs);
@@ -475,9 +475,29 @@ describe('getAttrByName and getAttrObjByName', () => {
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
-  it('event checks', () => {
+  test('event checks', () => {
     const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
-    const oldResult = _.cloneDeep(getAttrResult);
+    /*
+    type: 'attribute',
+    id: MockObjectName.MOCK_ATTRIBUTE,
+    properties: {
+      _characterid: MockObjectName.MOCK_CHARACTER,
+      name: mockObjectConstants.mockAttributeHpName,
+      current: mockObjectConstants.mockAttributeHpCurrent,
+      max: mockObjectConstants.mockAttributeHpMax,
+    },
+     */
+    const oldResult: AttributeImmutableSynchronousGetProperties & AttributeMutableSynchronousGetProperties = [
+      '_type',
+      '_id',
+      '_characterid',
+      'name',
+      'current',
+      'max',
+    ].reduce((obj, propName): object => {
+      obj[propName] = getAttrResult.get(propName);
+      return obj;
+    }, {} as any);
     getAttrResult?.set('name', 'new_name');
     triggerEvent('change', 'attribute', getAttrResult, oldResult);
 
