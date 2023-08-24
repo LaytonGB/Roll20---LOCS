@@ -1,18 +1,20 @@
 export class MockRoll20Object implements Roll20Object {
-  private _id: string;
   private props: { [property: string]: any };
 
-  constructor(
-    type: ObjectType,
-    id: string,
-    properties: { [property: string]: any } | undefined
-  ) {
-    this._id = id;
+  constructor(type: ObjectType, id: string, properties: { [property: string]: any } | undefined) {
     this.props = { _id: id, _type: type, ...properties };
   }
 
-  get id() {
-    return this._id;
+  get id(): string {
+    return this.props['_id'];
+  }
+
+  get _id(): string {
+    return this.props['_id'];
+  }
+
+  get _type(): ObjectType {
+    return this.props['_type'];
   }
 
   get(property: string): any {

@@ -131,6 +131,7 @@ describe('object and property caching', () => {
 describe('createObj', () => {
   const newObjType = 'graphic';
   const newObjParams = {
+    _pageid: MockObjectName.MOCK_PAGE,
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
 
@@ -250,6 +251,8 @@ describe('findObjs', () => {
 
     it('adds new results to cache when matching object created', () => {
       const newObject = new MockRoll20Object('graphic', eventGraphicId, {
+        _pageid: MockObjectName.MOCK_PAGE,
+        _type: 'graphic' as ObjectType,
         top: mockValues.mockObjectConstants.mockGraphicTop,
       });
 

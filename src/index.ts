@@ -17,12 +17,11 @@ interface IEventHandler {
 }
 
 interface ICreateObj {
-  (type: 'attribute', properties: { [property: string]: any }): Attribute | undefined;
-  (type: 'graphic', properties: { [property: string]: any }): Graphic | undefined;
+  <T extends ObjectType>(type: T, properties: ObjectCreationPropertiesMap[T]): ObjectTypeMap[T] | undefined;
 }
 
 interface IFindObjs {
-  <T extends ObjectType>(properties: { _type: T } & { [property: string]: any }): ObjectTypeMap[T][];
+  <T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][];
   (properties: { [property: string]: any }): Roll20Object[];
 }
 
@@ -114,7 +113,7 @@ export const Locs = ((): ILocsFactory => {
         const events = new Map<Roll20EventLabel, (obj: Roll20Object) => void>();
         cache.events.set(obj.id, events);
 
-        const destroyEventLabel = `destroy:${obj.get('_type')}`;
+        const destroyEventLabel: `destroy:${ObjectType}` = `destroy:${obj.get('_type') as ObjectType}`;
         const destroyCallback = (): void => {
           cache.objects.delete(obj.id);
           cache.events.delete(obj.id);
@@ -150,27 +149,35 @@ export const Locs = ((): ILocsFactory => {
       } as T;
     }
 
-    function watchEvent(
-      eventLabel: `add:${ObjectType}` | `destroy:${ObjectType}`,
-      callback: (obj: ObjectTypeMap[ObjectType]) => void
+    function watchEvent<T extends ObjectType>(
+      eventLabel: `add:${T}` | `destroy:${T}`,
+      callback: (obj: ObjectTypeMap[T]) => void
     ): void;
-    function watchEvent(
-      eventLabel: `change:${ObjectType}`,
-      callback: (obj: ObjectTypeMap[ObjectType], oldObj: ObjectPropertyMap[ObjectType]) => void
+    function watchEvent<T extends ObjectType>(
+      eventLabel: `change:${T}`,
+      callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
     ): void;
     function watchEvent(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribe(callback);
     }
 
-    function watchEventOnce(eventLabel: Roll20EventLabel, callback: (obj: Roll20Object) => void): void {
+    function watchEventOnce<T extends ObjectType>(
+      eventLabel: `add:${T}` | `destroy:${T}`,
+      callback: (obj: ObjectTypeMap[T]) => void
+    ): void;
+    function watchEventOnce<T extends ObjectType>(
+      eventLabel: `change:${T}`,
+      callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
+    ): void;
+    function watchEventOnce(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribeUntilFired(callback);
     }
 
     function locsCreateObj<T extends ObjectType>(
       type: T,
-      properties: { [property: string]: any }
+      properties: ObjectCreationPropertiesMap[T]
     ): ObjectTypeMap[T] | undefined {
       // @ts-ignore not assignable error because of roll20 types
       const newObject = createObj(type, properties);
@@ -180,16 +187,7 @@ export const Locs = ((): ILocsFactory => {
       }
     }
 
-    function locsFindObjs(properties: { _type: 'text' } & { [property: string]: any }): Text[];
-    function locsFindObjs(properties: { _type: 'graphic' } & { [property: string]: any }): Graphic[];
-    function locsFindObjs(properties: { _type: 'character' } & { [property: string]: any }): Character[];
-    function locsFindObjs(properties: { _type: 'attribute' } & { [property: string]: any }): Attribute[];
-    function locsFindObjs(properties: { _type: 'ability' } & { [property: string]: any }): Ability[];
-    function locsFindObjs(properties: { _type: 'player' } & { [property: string]: any }): Player[];
-    function locsFindObjs(properties: { _type: 'macro' } & { [property: string]: any }): Macro[];
-    function locsFindObjs(properties: { _type: 'page' } & { [property: string]: any }): Page[];
-    function locsFindObjs(properties: { [property: string]: any }): Roll20Object[];
-    function locsFindObjs(properties: { [property: string]: any }): Roll20Object[] {
+    function locsFindObjs<T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][] {
       function isMatch(obj: Roll20Object): boolean {
         for (const [property, value] of Object.entries(properties)) {
           if (obj.get(property) !== value) {
@@ -202,7 +200,7 @@ export const Locs = ((): ILocsFactory => {
       const cacheKey = keyFromSearchArgs(properties);
       const cacheResult = cache.finds.get(cacheKey);
       if (cacheResult) {
-        return cacheResult;
+        return cacheResult as ObjectTypeMap[T][];
       }
 
       const roll20Result = findObjs(properties);
@@ -248,7 +246,7 @@ export const Locs = ((): ILocsFactory => {
         watchEvent(eventLabel, callback);
       }
 
-      return roll20Result;
+      return roll20Result as ObjectTypeMap[T][];
     }
 
     // TODO WARNING this can fail if the callback references a changing variable
@@ -335,7 +333,7 @@ export const Locs = ((): ILocsFactory => {
     // TODO RESEARCH does roll20 manage duplicate named attributes?
     function locsGetAttrObjByName(character_id: string, attribute_name: string): Attribute | undefined {
       const searchArgs = {
-        _type: 'attribute',
+        _type: 'attribute' as ObjectType,
         _characterid: character_id,
         name: attribute_name,
       };
