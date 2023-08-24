@@ -13,54 +13,10 @@ interface IEventHandler {
     unsubscribe(callback: (obj: Roll20Object) => void): void;
 }
 interface ICreateObj {
-    (type: 'attribute', properties: {
-        [property: string]: any;
-    }): Attribute | undefined;
-    (type: 'graphic', properties: {
-        [property: string]: any;
-    }): Graphic | undefined;
+    <T extends ObjectType>(type: T, properties: ObjectCreationPropertiesMap[T]): ObjectTypeMap[T] | undefined;
 }
 interface IFindObjs {
-    (properties: {
-        _type: 'text';
-    } & {
-        [property: string]: any;
-    }): Text[];
-    (properties: {
-        _type: 'graphic';
-    } & {
-        [property: string]: any;
-    }): Graphic[];
-    (properties: {
-        _type: 'character';
-    } & {
-        [property: string]: any;
-    }): Character[];
-    (properties: {
-        _type: 'attribute';
-    } & {
-        [property: string]: any;
-    }): Attribute[];
-    (properties: {
-        _type: 'ability';
-    } & {
-        [property: string]: any;
-    }): Ability[];
-    (properties: {
-        _type: 'player';
-    } & {
-        [property: string]: any;
-    }): Player[];
-    (properties: {
-        _type: 'macro';
-    } & {
-        [property: string]: any;
-    }): Macro[];
-    (properties: {
-        _type: 'page';
-    } & {
-        [property: string]: any;
-    }): Page[];
+    <T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][];
     (properties: {
         [property: string]: any;
     }): Roll20Object[];
@@ -75,15 +31,7 @@ interface IGetAttrObjByName {
     (character_id: Roll20Id, attribute_name: string): Attribute | undefined;
 }
 interface IGetObj {
-    (type: 'text', id: string): Text | undefined;
-    (type: 'graphic', id: string): Graphic | undefined;
-    (type: 'character', id: string): Character | undefined;
-    (type: 'attribute', id: string): Attribute | undefined;
-    (type: 'ability', id: string): Ability | undefined;
-    (type: 'player', id: string): Player | undefined;
-    (type: 'macro', id: string): Macro | undefined;
-    (type: 'page', id: string): Page | undefined;
-    (type: ObjectType, id: string): Roll20Object | undefined;
+    <T extends ObjectType>(type: T, id: string): ObjectTypeMap[T] | undefined;
 }
 declare interface ILocs {
     createObj: ICreateObj;

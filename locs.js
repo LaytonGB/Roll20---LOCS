@@ -74,6 +74,12 @@ const Locs = (() => {
                 .map(([key, value]) => `${key}=${value}`)
                 .join('&');
         }
+        function roll20ObjectPropertiesAsObject(obj) {
+            return {
+                id: obj._id,
+                get: (property) => obj[property],
+            };
+        }
         function watchEvent(eventLabel, callback) {
             const event = getOrCreateEvent(eventLabel);
             event.subscribe(callback);
@@ -110,14 +116,16 @@ const Locs = (() => {
             cache.finds.set(cacheKey, newCacheValue);
             const eventsForThisSearch = new Map();
             cache.events.set(cacheKey, eventsForThisSearch);
-            eventsForThisSearch.set(`add:${properties._type}`, (obj) => {
+            const objType = properties._type;
+            eventsForThisSearch.set(`add:${objType}`, (obj) => {
                 if (isMatch(obj)) {
                     newCacheValue.push(obj);
                 }
             });
-            eventsForThisSearch.set(`change:${properties._type}`, (obj, oldObj) => {
+            eventsForThisSearch.set(`change:${objType}`, (obj, oldObj) => {
                 const doesMatch = isMatch(obj);
-                const didMatch = isMatch(oldObj);
+                const reconstructedOldObj = roll20ObjectPropertiesAsObject(oldObj);
+                const didMatch = isMatch(reconstructedOldObj);
                 if (doesMatch) {
                     if (!didMatch) {
                         newCacheValue.push(obj);
@@ -175,7 +183,8 @@ const Locs = (() => {
                 });
                 watchEvent(`change:${objType}`, (obj, oldObj) => {
                     const doesMatch = callback(obj);
-                    const didMatch = callback(oldObj);
+                    const reconstructedOldObj = roll20ObjectPropertiesAsObject(oldObj);
+                    const didMatch = callback(reconstructedOldObj);
                     if (doesMatch) {
                         if (!didMatch) {
                             newCacheResults.push(obj);
