@@ -99,6 +99,8 @@ const Locs = (() => {
         function locsFindObjs(properties) {
             function isMatch(obj) {
                 for (const [property, value] of Object.entries(properties)) {
+                    const stackTracedError = Error('getting stack trace');
+                    log('Locs DEBUG: `isMatch` running with stacktrace: \n' + stackTracedError.stack);
                     if (obj.get(property) !== value) {
                         return false;
                     }

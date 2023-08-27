@@ -187,6 +187,8 @@ export const Locs = ((): ILocsFactory => {
     function locsFindObjs<T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][] {
       function isMatch(obj: Roll20Object): boolean {
         for (const [property, value] of Object.entries(properties)) {
+          const stackTracedError = Error('getting stack trace');
+          log('Locs DEBUG: `isMatch` running with stacktrace: \n' + stackTracedError.stack);
           if (obj.get(property) !== value) {
             return false;
           }
