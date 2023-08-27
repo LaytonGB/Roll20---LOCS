@@ -142,9 +142,7 @@ describe('createObj', () => {
 
   it('creates an object that is immediately cached', () => {
     const newObject = locs.createObj(newObjType, newObjParams);
-    if (!newObject) {
-      throw new Error('Failed to create object');
-    }
+    if (!newObject) throw new Error('Failed to create object');
 
     const newObjId = newObject.id;
     const getObjCallCount = getObjSpy.mock.calls.length;

@@ -7,13 +7,11 @@ const Locs = (() => {
             const indexesToRemove = [];
             subscribers.forEach(([subscriberCallback, removeAfterFiring], index) => {
                 subscriberCallback(...objs);
-                if (removeAfterFiring) {
+                if (removeAfterFiring)
                     indexesToRemove.push(index);
-                }
             });
-            for (const index of indexesToRemove) {
+            for (const index of indexesToRemove)
                 subscribers.splice(index, 1);
-            }
         }
         function subscribe(callback) {
             subscribers.push([callback, false]);
@@ -89,7 +87,6 @@ const Locs = (() => {
             event.subscribeUntilFired(callback);
         }
         function locsCreateObj(type, properties) {
-            // @ts-ignore not assignable error because of roll20 types
             const newObject = createObj(type, properties);
             if (newObject) {
                 cacheObject(newObject);
@@ -98,20 +95,15 @@ const Locs = (() => {
         }
         function locsFindObjs(properties) {
             function isMatch(obj) {
-                for (const [property, value] of Object.entries(properties)) {
-                    const stackTracedError = Error('getting stack trace');
-                    log('Locs DEBUG: `isMatch` running with stacktrace: \n' + stackTracedError.stack);
-                    if (obj.get(property) !== value) {
+                for (const [property, value] of Object.entries(properties))
+                    if (obj.get(property) !== value)
                         return false;
-                    }
-                }
                 return true;
             }
             const cacheKey = keyFromSearchArgs(properties);
             const cacheResult = cache.finds.get(cacheKey);
-            if (cacheResult) {
+            if (cacheResult)
                 return cacheResult;
-            }
             const roll20Result = findObjs(properties);
             roll20Result.forEach((obj) => cacheObject(obj));
             const newCacheValue = roll20Result;
@@ -120,46 +112,40 @@ const Locs = (() => {
             cache.events.set(cacheKey, eventsForThisSearch);
             const objType = properties._type;
             eventsForThisSearch.set(`add:${objType}`, (obj) => {
-                if (isMatch(obj)) {
+                if (isMatch(obj))
                     newCacheValue.push(obj);
-                }
             });
             eventsForThisSearch.set(`change:${objType}`, (obj, oldObj) => {
                 const doesMatch = isMatch(obj);
                 const reconstructedOldObj = roll20ObjectPropertiesAsObject(oldObj);
                 const didMatch = isMatch(reconstructedOldObj);
                 if (doesMatch) {
-                    if (!didMatch) {
+                    if (!didMatch)
                         newCacheValue.push(obj);
-                    }
                 }
                 else {
                     if (didMatch) {
                         const foundObjectIndex = newCacheValue.indexOf(obj);
-                        if (foundObjectIndex !== -1) {
+                        if (foundObjectIndex !== -1)
                             newCacheValue.splice(foundObjectIndex, 1);
-                        }
                     }
                 }
             });
             eventsForThisSearch.set(`destroy:${properties._type}`, (obj) => {
                 const foundObjectIndex = newCacheValue.indexOf(obj);
-                if (foundObjectIndex !== -1) {
+                if (foundObjectIndex !== -1)
                     newCacheValue.splice(foundObjectIndex, 1);
-                }
             });
-            for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
+            for (const [eventLabel, callback] of eventsForThisSearch.entries())
                 watchEvent(eventLabel, callback);
-            }
             return roll20Result;
         }
         // TODO WARNING this can fail if the callback references a changing variable
         // at least warn users of this
         function locsFilterObjs(callback) {
             const cachedResults = cache.filters.get(callback);
-            if (cachedResults) {
+            if (cachedResults)
                 return cachedResults;
-            }
             const newCacheResults = filterObjs(callback);
             cache.filters.set(callback, newCacheResults);
             const allObjectTypes = [
@@ -179,34 +165,30 @@ const Locs = (() => {
             ];
             allObjectTypes.forEach((objType) => {
                 watchEvent(`add:${objType}`, (obj) => {
-                    if (callback(obj)) {
+                    if (callback(obj))
                         newCacheResults.push(obj);
-                    }
                 });
                 watchEvent(`change:${objType}`, (obj, oldObj) => {
                     const doesMatch = callback(obj);
                     const reconstructedOldObj = roll20ObjectPropertiesAsObject(oldObj);
                     const didMatch = callback(reconstructedOldObj);
                     if (doesMatch) {
-                        if (!didMatch) {
+                        if (!didMatch)
                             newCacheResults.push(obj);
-                        }
                     }
                     else {
                         if (didMatch) {
                             const foundObjIndex = newCacheResults.indexOf(obj);
-                            if (foundObjIndex !== -1) {
+                            if (foundObjIndex !== -1)
                                 newCacheResults.splice(foundObjIndex, 1);
-                            }
                         }
                     }
                 });
                 watchEvent(`destroy:${objType}`, (obj) => {
                     if (callback(obj)) {
                         const foundObjIndex = newCacheResults.indexOf(obj);
-                        if (foundObjIndex !== -1) {
+                        if (foundObjIndex !== -1)
                             newCacheResults.splice(foundObjIndex, 1);
-                        }
                     }
                 });
             });
@@ -214,9 +196,8 @@ const Locs = (() => {
         }
         function locsGetAttrByName(character_id, attribute_name, value_type = 'current') {
             const attrObj = locsGetAttrObjByName(character_id, attribute_name);
-            if (!attrObj) {
+            if (!attrObj)
                 return '';
-            }
             return attrObj.get(value_type);
         }
         // TODO RESEARCH does roll20 manage duplicate named attributes?
@@ -235,13 +216,11 @@ const Locs = (() => {
         }
         function locsGetObj(type, id) {
             const cacheResult = cache.objects.get(id);
-            if (cacheResult) {
+            if (cacheResult)
                 return cacheResult;
-            }
             const roll20Result = getObj(type, id);
-            if (roll20Result) {
+            if (roll20Result)
                 cacheObject(roll20Result);
-            }
             return roll20Result;
         }
         return {
