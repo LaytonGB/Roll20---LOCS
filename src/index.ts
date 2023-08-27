@@ -59,14 +59,10 @@ export const Locs = ((): ILocsFactory => {
       const indexesToRemove: number[] = [];
       subscribers.forEach(([subscriberCallback, removeAfterFiring], index) => {
         subscriberCallback(...objs);
-        if (removeAfterFiring) {
-          indexesToRemove.push(index);
-        }
+        if (removeAfterFiring) indexesToRemove.push(index);
       });
 
-      for (const index of indexesToRemove) {
-        subscribers.splice(index, 1);
-      }
+      for (const index of indexesToRemove) subscribers.splice(index, 1);
     }
 
     function subscribe(callback: (obj: Roll20Object) => void): void {
@@ -186,21 +182,13 @@ export const Locs = ((): ILocsFactory => {
 
     function locsFindObjs<T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][] {
       function isMatch(obj: Roll20Object): boolean {
-        for (const [property, value] of Object.entries(properties)) {
-          const stackTracedError = Error('getting stack trace');
-          log('Locs DEBUG: `isMatch` running with stacktrace: \n' + stackTracedError.stack);
-          if (obj.get(property) !== value) {
-            return false;
-          }
-        }
+        for (const [property, value] of Object.entries(properties)) if (obj.get(property) !== value) return false;
         return true;
       }
 
       const cacheKey = keyFromSearchArgs(properties);
       const cacheResult = cache.finds.get(cacheKey);
-      if (cacheResult) {
-        return cacheResult as ObjectTypeMap[T][];
-      }
+      if (cacheResult) return cacheResult as ObjectTypeMap[T][];
 
       const roll20Result = findObjs(properties);
       roll20Result.forEach((obj) => cacheObject(obj));
@@ -214,9 +202,7 @@ export const Locs = ((): ILocsFactory => {
       const objType = properties._type as ObjectType;
 
       eventsForThisSearch.set(`add:${objType}`, (obj: Roll20Object) => {
-        if (isMatch(obj)) {
-          newCacheValue.push(obj);
-        }
+        if (isMatch(obj)) newCacheValue.push(obj);
       });
 
       eventsForThisSearch.set(
@@ -226,15 +212,11 @@ export const Locs = ((): ILocsFactory => {
           const reconstructedOldObj = roll20ObjectPropertiesAsObject<typeof obj>(oldObj);
           const didMatch = isMatch(reconstructedOldObj);
           if (doesMatch) {
-            if (!didMatch) {
-              newCacheValue.push(obj);
-            }
+            if (!didMatch) newCacheValue.push(obj);
           } else {
             if (didMatch) {
               const foundObjectIndex = newCacheValue.indexOf(obj);
-              if (foundObjectIndex !== -1) {
-                newCacheValue.splice(foundObjectIndex, 1);
-              }
+              if (foundObjectIndex !== -1) newCacheValue.splice(foundObjectIndex, 1);
             }
           }
         }
@@ -242,14 +224,10 @@ export const Locs = ((): ILocsFactory => {
 
       eventsForThisSearch.set(`destroy:${properties._type}`, (obj: Roll20Object) => {
         const foundObjectIndex = newCacheValue.indexOf(obj);
-        if (foundObjectIndex !== -1) {
-          newCacheValue.splice(foundObjectIndex, 1);
-        }
+        if (foundObjectIndex !== -1) newCacheValue.splice(foundObjectIndex, 1);
       });
 
-      for (const [eventLabel, callback] of eventsForThisSearch.entries()) {
-        watchEvent(eventLabel, callback);
-      }
+      for (const [eventLabel, callback] of eventsForThisSearch.entries()) watchEvent(eventLabel, callback);
 
       return roll20Result as ObjectTypeMap[T][];
     }
@@ -258,9 +236,7 @@ export const Locs = ((): ILocsFactory => {
     // at least warn users of this
     function locsFilterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
       const cachedResults = cache.filters.get(callback);
-      if (cachedResults) {
-        return cachedResults;
-      }
+      if (cachedResults) return cachedResults;
 
       const newCacheResults = filterObjs(callback);
       cache.filters.set(callback, newCacheResults);
@@ -283,9 +259,7 @@ export const Locs = ((): ILocsFactory => {
 
       allObjectTypes.forEach((objType) => {
         watchEvent(`add:${objType}`, (obj: Roll20Object) => {
-          if (callback(obj)) {
-            newCacheResults.push(obj);
-          }
+          if (callback(obj)) newCacheResults.push(obj);
         });
 
         watchEvent(
@@ -295,15 +269,11 @@ export const Locs = ((): ILocsFactory => {
             const reconstructedOldObj = roll20ObjectPropertiesAsObject<typeof obj>(oldObj);
             const didMatch = callback(reconstructedOldObj);
             if (doesMatch) {
-              if (!didMatch) {
-                newCacheResults.push(obj);
-              }
+              if (!didMatch) newCacheResults.push(obj);
             } else {
               if (didMatch) {
                 const foundObjIndex = newCacheResults.indexOf(obj);
-                if (foundObjIndex !== -1) {
-                  newCacheResults.splice(foundObjIndex, 1);
-                }
+                if (foundObjIndex !== -1) newCacheResults.splice(foundObjIndex, 1);
               }
             }
           }
@@ -312,9 +282,7 @@ export const Locs = ((): ILocsFactory => {
         watchEvent(`destroy:${objType}`, (obj: Roll20Object) => {
           if (callback(obj)) {
             const foundObjIndex = newCacheResults.indexOf(obj);
-            if (foundObjIndex !== -1) {
-              newCacheResults.splice(foundObjIndex, 1);
-            }
+            if (foundObjIndex !== -1) newCacheResults.splice(foundObjIndex, 1);
           }
         });
       });
@@ -328,9 +296,7 @@ export const Locs = ((): ILocsFactory => {
       value_type: 'current' | 'max' = 'current'
     ): string {
       const attrObj = locsGetAttrObjByName(character_id, attribute_name);
-      if (!attrObj) {
-        return '';
-      }
+      if (!attrObj) return '';
 
       return attrObj.get(value_type);
     }
@@ -352,14 +318,11 @@ export const Locs = ((): ILocsFactory => {
 
     function locsGetObj<T extends ObjectType>(type: T, id: Roll20Id): ObjectTypeMap[T] | undefined {
       const cacheResult = cache.objects.get(id);
-      if (cacheResult) {
-        return cacheResult as ObjectTypeMap[T];
-      }
+      if (cacheResult) return cacheResult as ObjectTypeMap[T];
 
       const roll20Result = getObj(type, id);
-      if (roll20Result) {
-        cacheObject(roll20Result);
-      }
+      if (roll20Result) cacheObject(roll20Result);
+
       return roll20Result as ObjectTypeMap[T];
     }
 
