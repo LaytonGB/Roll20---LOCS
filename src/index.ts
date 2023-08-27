@@ -41,6 +41,14 @@ interface IGetObj {
   <T extends ObjectType>(type: T, id: string): ObjectTypeMap[T] | undefined;
 }
 
+interface IOnOnce {
+  <T extends ObjectType>(eventLabel: `add:${T}` | `destroy:${T}`, callback: (obj: ObjectTypeMap[T]) => void): void;
+  <T extends ObjectType>(
+    eventLabel: `change:${T}`,
+    callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
+  ): void;
+}
+
 export interface ILocs {
   createObj: ICreateObj;
   findObjs: IFindObjs;
@@ -48,6 +56,7 @@ export interface ILocs {
   getAttrByName: IGetAttrByName;
   getAttrObjByName: IGetAttrObjByName;
   getObj: IGetObj;
+  onOnce: IOnOnce;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -332,6 +341,7 @@ export const Locs = ((): ILocsFactory => {
       getAttrByName: locsGetAttrByName,
       getAttrObjByName: locsGetAttrObjByName,
       getObj: locsGetObj,
+      onOnce: watchEventOnce,
     };
   }
 
