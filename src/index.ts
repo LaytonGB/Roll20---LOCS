@@ -21,7 +21,7 @@ interface ICreateObj {
 }
 
 interface IFindObjs {
-  <T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][];
+  <T extends ObjectType>(properties: { _type: T } & Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][];
   (properties: { [property: string]: any }): Roll20Object[];
 }
 
