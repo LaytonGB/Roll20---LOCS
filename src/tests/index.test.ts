@@ -476,7 +476,7 @@ describe('getAttrByName and getAttrObjByName', () => {
   });
 
   test('event checks', () => {
-    const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Roll20Object;
+    const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Attribute;
     /*
     type: 'attribute',
     id: MockObjectName.MOCK_ATTRIBUTE,
@@ -487,14 +487,9 @@ describe('getAttrByName and getAttrObjByName', () => {
       max: mockObjectConstants.mockAttributeHpMax,
     },
      */
-    const oldResult: AttributeImmutableSynchronousGetProperties & AttributeMutableSynchronousGetProperties = [
-      '_type',
-      '_id',
-      '_characterid',
-      'name',
-      'current',
-      'max',
-    ].reduce((obj, propName): object => {
+    const oldResult: AttributeImmutableSynchronousGetProperties & AttributeMutableSynchronousGetProperties = (
+      ['_type', '_id', '_characterid', 'name', 'current', 'max'] as (keyof ObjectPropertyMap['attribute'])[]
+    ).reduce((obj, propName): object => {
       obj[propName] = getAttrResult.get(propName);
       return obj;
     }, {} as any);
