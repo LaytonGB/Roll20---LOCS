@@ -172,7 +172,6 @@ export const Locs = ((): ILocsFactory => {
       type: T,
       properties: ObjectCreationPropertiesMap[T]
     ): ObjectTypeMap[T] | undefined {
-      // @ts-ignore not assignable error because of roll20 types
       const newObject = createObj(type, properties);
       if (newObject) {
         cacheObject(newObject);
