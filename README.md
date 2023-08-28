@@ -10,40 +10,30 @@ If you repeatedly call `getObj`, `findObjs`, `filterObjs`, or `getAttrByName` wi
 
 ```ts
 const locs = Locs.new();
-locs.findObjs("character", { _pageid: "example" });
+locs.findObjs('character', { _pageid: 'example' });
 ```
 
 The first time any unique query is called it will be slower than Roll20, so **do not use LOCS for one-off calls**.
 
-Use `filterObjs` any time you want to search with changing values:
+Use `filterObjs` carefully. If the callback function refers to changing values, the cached return will not be updated to match giving bad results!!!
+
+Example of bad code:
 
 ```ts
-const locs = Locs.new();
-const myGraphic = locs.createObj("graphic", {
-  _pageid: "example",
-  top: 5,
-  left: 5,
-});
-locs.filter((otherObj) => {
-  if (
-    otherObj.get("_type") === "graphic" &&
-    distanceBetween(myObj, otherObj) < 10
-  ) {
-    return true;
-  }
-  return false;
-});
+let myChangingNumber = 3;
+const myCallbackFunction = (obj) => obj.get('_type') === 'graphic' && obj.get('top') === myChangingNumber;
+const results1 = locs.filterObjs(myCallbackFunction);
+myChangingNumber = 10;
+const results2 = locs.filterObjs(myCallbackFunction);
+results1 === results2; // true -> because LOCS does not know that `myChangingNumber` changed value, it still returns the same stored result
 ```
-
-LOCS adds event listeners as needed to maintain the values in the cache. If an object is added, changed, or removed, LOCS will treat it accordingly across all cached values.
 
 ## All functions
 
 ### `createObj`
 
 ```ts
-createObj: (type: ObjectType, properties: { [property: string]: any }) =>
-  Roll20Object | undefined;
+createObj: (type: ObjectType, properties: { [property: string]: any }) => Roll20Object | undefined;
 ```
 
 ### `findObjs`
@@ -61,11 +51,7 @@ filterObjs: (callback: (obj: Roll20Object) => boolean) => Roll20Object[];
 ### `getAttrByName`
 
 ```ts
-getAttrByName: (
-  character_id: Roll20Id,
-  attribute_name: string,
-  value_type?: "current" | "max"
-) => string;
+getAttrByName: (character_id: Roll20Id, attribute_name: string, value_type?: 'current' | 'max') => string;
 ```
 
 ### `getAttrObjByName`
@@ -73,8 +59,7 @@ getAttrByName: (
 Rather than getting the value of an attribute, use this method to get the object that contains the value. It uses the same cache as `getAttrByName`, so searching for an attribute in one method will cache that attribute for the other.
 
 ```ts
-getAttrObjByName: (character_id: Roll20Id, attribute_name: string) =>
-  Roll20Object | undefined;
+getAttrObjByName: (character_id: Roll20Id, attribute_name: string) => Roll20Object | undefined;
 ```
 
 ### `getObj`
