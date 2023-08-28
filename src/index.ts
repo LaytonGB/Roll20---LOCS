@@ -13,7 +13,7 @@ interface IEventHandler {
   fire(...objs: Roll20Object[]): void;
   subscribe(callback: (obj: Roll20Object) => void): void;
   subscribeUntilFired(callback: (obj: Roll20Object) => void): void;
-  unsubscribe(callback: (obj: Roll20Object) => void): void;
+  unsubscribe(callback: (obj: Roll20Object) => void): boolean;
 }
 
 interface ICreateObj {
@@ -41,12 +41,37 @@ interface IGetObj {
   <T extends ObjectType>(type: T, id: string): ObjectTypeMap[T] | undefined;
 }
 
-interface IOnOnce {
-  <T extends ObjectType>(eventLabel: `add:${T}` | `destroy:${T}`, callback: (obj: ObjectTypeMap[T]) => void): void;
-  <T extends ObjectType>(
-    eventLabel: `change:${T}`,
+interface IOn {
+  <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+    eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
+    callback: (obj: ObjectTypeMap[T]) => void
+  ): void;
+  <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+    eventLabel: `change:${T}` | `change:${T}:${K}`,
     callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
   ): void;
+}
+
+interface IOnOnce {
+  <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+    eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
+    callback: (obj: ObjectTypeMap[T]) => void
+  ): void;
+  <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+    eventLabel: `change:${T}` | `change:${T}:${K}`,
+    callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
+  ): void;
+}
+
+interface IRemoveOn {
+  <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+    eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
+    callback: (obj: ObjectTypeMap[T]) => void
+  ): boolean;
+  <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+    eventLabel: `change:${T}` | `change:${T}:${K}`,
+    callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
+  ): boolean;
 }
 
 export interface ILocs {
@@ -56,7 +81,9 @@ export interface ILocs {
   getAttrByName: IGetAttrByName;
   getAttrObjByName: IGetAttrObjByName;
   getObj: IGetObj;
+  on: IOn;
   onOnce: IOnOnce;
+  removeOn: IRemoveOn;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -82,14 +109,15 @@ export const Locs = ((): ILocsFactory => {
       subscribers.push([callback, true]);
     }
 
-    function unsubscribe(callback: (obj: Roll20Object) => void): void {
+    function unsubscribe(callback: (obj: Roll20Object) => void): boolean {
       const foundCallbackIndex = subscribers.findIndex(([storedCallback]) => storedCallback === callback);
       if (foundCallbackIndex === -1) {
         log('WARN: cannot unsubscribe a callback function that is not already subscribed');
-        return;
+        return false;
       }
 
       subscribers.splice(foundCallbackIndex, 1);
+      return true;
     }
 
     // @ts-ignore Does not correctly identify `on` overloads
@@ -151,12 +179,12 @@ export const Locs = ((): ILocsFactory => {
       } as T;
     }
 
-    function watchEvent<T extends ObjectType>(
-      eventLabel: `add:${T}` | `destroy:${T}`,
+    function watchEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+      eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
       callback: (obj: ObjectTypeMap[T]) => void
     ): void;
-    function watchEvent<T extends ObjectType>(
-      eventLabel: `change:${T}`,
+    function watchEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+      eventLabel: `change:${T}` | `change:${T}:${K}`,
       callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
     ): void;
     function watchEvent(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
@@ -164,17 +192,32 @@ export const Locs = ((): ILocsFactory => {
       event.subscribe(callback);
     }
 
-    function watchEventOnce<T extends ObjectType>(
-      eventLabel: `add:${T}` | `destroy:${T}`,
+    function watchEventOnce<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+      eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
       callback: (obj: ObjectTypeMap[T]) => void
     ): void;
-    function watchEventOnce<T extends ObjectType>(
-      eventLabel: `change:${T}`,
+    function watchEventOnce<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+      eventLabel: `change:${T}` | `change:${T}:${K}`,
       callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
     ): void;
     function watchEventOnce(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribeUntilFired(callback);
+    }
+
+    function stopWatchingEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+      eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
+      callback: (obj: ObjectTypeMap[T]) => void
+    ): boolean;
+    function stopWatchingEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
+      eventLabel: `change:${T}` | `change:${T}:${K}`,
+      callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
+    ): boolean;
+    function stopWatchingEvent(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): boolean {
+      const listener = eventHandlers.get(eventLabel);
+      if (!listener) return false;
+
+      return listener.unsubscribe(callback);
     }
 
     function locsCreateObj<T extends ObjectType>(
@@ -341,7 +384,9 @@ export const Locs = ((): ILocsFactory => {
       getAttrByName: locsGetAttrByName,
       getAttrObjByName: locsGetAttrObjByName,
       getObj: locsGetObj,
+      on: watchEvent,
       onOnce: watchEventOnce,
+      removeOn: stopWatchingEvent,
     };
   }
 
