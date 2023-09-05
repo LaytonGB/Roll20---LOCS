@@ -23,9 +23,10 @@ const Locs = (() => {
             const foundCallbackIndex = subscribers.findIndex(([storedCallback]) => storedCallback === callback);
             if (foundCallbackIndex === -1) {
                 log('WARN: cannot unsubscribe a callback function that is not already subscribed');
-                return;
+                return false;
             }
             subscribers.splice(foundCallbackIndex, 1);
+            return true;
         }
         // @ts-ignore Does not correctly identify `on` overloads
         on(roll20EventLabel, fire);
@@ -85,6 +86,12 @@ const Locs = (() => {
         function watchEventOnce(eventLabel, callback) {
             const event = getOrCreateEvent(eventLabel);
             event.subscribeUntilFired(callback);
+        }
+        function stopWatchingEvent(eventLabel, callback) {
+            const listener = eventHandlers.get(eventLabel);
+            if (!listener)
+                return false;
+            return listener.unsubscribe(callback);
         }
         function locsCreateObj(type, properties) {
             const newObject = createObj(type, properties);
@@ -214,6 +221,25 @@ const Locs = (() => {
                 return foundAttribute;
             }
         }
+        function locsGetOrCreateAttrObjByName(character_id, attribute_name, defaultValues) {
+            const searchArgs = {
+                _type: 'attribute',
+                _characterid: character_id,
+                name: attribute_name,
+            };
+            const searchResults = locsFindObjs(searchArgs);
+            if (searchResults.length > 0) {
+                const foundAttribute = searchResults[0];
+                cacheObject(foundAttribute);
+                return foundAttribute;
+            }
+            const createdAttribute = locsCreateObj('attribute', {
+                _characterid: character_id,
+                name: attribute_name,
+                ...defaultValues,
+            });
+            return createdAttribute;
+        }
         function locsGetObj(type, id) {
             const cacheResult = cache.objects.get(id);
             if (cacheResult)
@@ -229,7 +255,11 @@ const Locs = (() => {
             filterObjs: locsFilterObjs,
             getAttrByName: locsGetAttrByName,
             getAttrObjByName: locsGetAttrObjByName,
+            getOrCreateAttrObjByName: locsGetOrCreateAttrObjByName,
             getObj: locsGetObj,
+            on: watchEvent,
+            onOnce: watchEventOnce,
+            removeOn: stopWatchingEvent,
         };
     }
     return {

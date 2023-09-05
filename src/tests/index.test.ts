@@ -457,14 +457,6 @@ describe('getAttrByName and getAttrObjByName', () => {
     locs = Locs.new();
   });
 
-  test('getAttrObjByName caches each search', () => {
-    locs.getAttrObjByName(...getAttrArgs);
-    const findObjsCallCount = findObjsSpy.mock.calls.length;
-    locs.getAttrObjByName(...getAttrArgs);
-
-    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
-  });
-
   test('getAttrByName caches each search', () => {
     locs.getAttrByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
@@ -473,18 +465,25 @@ describe('getAttrByName and getAttrObjByName', () => {
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
+  test('getAttrObjByName caches each search', () => {
+    locs.getAttrObjByName(...getAttrArgs);
+    const findObjsCallCount = findObjsSpy.mock.calls.length;
+    locs.getAttrObjByName(...getAttrArgs);
+
+    expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
+  });
+
+  test('getOrCreateAttrObjByName', () => {
+    const createObjCallCount = createObjSpy.mock.calls.length;
+    const undefinedAttrArgs: [string, string] = ['UNDEFINED_CHARACTER', 'UNDEFINED_ID'];
+    const foundOrCreatedAttribute = locs.getOrCreateAttrObjByName(...undefinedAttrArgs);
+
+    expect(foundOrCreatedAttribute).toBeDefined();
+    expect(createObjSpy).toHaveBeenCalledTimes(createObjCallCount + 1);
+  });
+
   test('event checks', () => {
     const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Attribute;
-    /*
-    type: 'attribute',
-    id: MockObjectName.MOCK_ATTRIBUTE,
-    properties: {
-      _characterid: MockObjectName.MOCK_CHARACTER,
-      name: mockObjectConstants.mockAttributeHpName,
-      current: mockObjectConstants.mockAttributeHpCurrent,
-      max: mockObjectConstants.mockAttributeHpMax,
-    },
-     */
     const oldResult: AttributeImmutableSynchronousGetProperties & AttributeMutableSynchronousGetProperties = (
       ['_type', '_id', '_characterid', 'name', 'current', 'max'] as (keyof ObjectPropertyMap['attribute'])[]
     ).reduce((obj, propName): object => {

@@ -9,6 +9,7 @@ const mockObjectConstants = {
 };
 
 export enum MockObjectName {
+  CREATED_ATTRIBUTE = 'created_attribute',
   CREATED_CHARACTER = 'created_character',
   CREATED_GRAPHIC = 'created_graphic',
   MOCK_ATTRIBUTE = 'mock_attribute',
@@ -33,6 +34,7 @@ const mockObjectParams: {
       max: mockObjectConstants.mockAttributeHpMax,
     },
   },
+  { type: 'attribute', id: MockObjectName.CREATED_ATTRIBUTE },
   { type: 'character', id: MockObjectName.CREATED_CHARACTER },
   { type: 'character', id: MockObjectName.MOCK_CHARACTER },
   {

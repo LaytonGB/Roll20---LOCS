@@ -80,6 +80,7 @@ export interface ILocs {
   filterObjs: IFilterObjs;
   getAttrByName: IGetAttrByName;
   getAttrObjByName: IGetAttrObjByName;
+  getOrCreateAttrObjByName: IGetAttrObjByName; // intentional type repetition
   getObj: IGetObj;
   on: IOn;
   onOnce: IOnOnce;
@@ -355,7 +356,7 @@ export const Locs = ((): ILocsFactory => {
     // TODO RESEARCH does roll20 manage duplicate named attributes?
     function locsGetAttrObjByName(character_id: string, attribute_name: string): Attribute | undefined {
       const searchArgs = {
-        _type: 'attribute' as ObjectType,
+        _type: 'attribute' as const,
         _characterid: character_id,
         name: attribute_name,
       };
@@ -365,6 +366,31 @@ export const Locs = ((): ILocsFactory => {
         cacheObject(foundAttribute);
         return foundAttribute as Attribute | undefined;
       }
+    }
+
+    function locsGetOrCreateAttrObjByName(
+      character_id: string,
+      attribute_name: string,
+      defaultValues?: { current?: string; max?: string }
+    ): Attribute | undefined {
+      const searchArgs = {
+        _type: 'attribute' as const,
+        _characterid: character_id,
+        name: attribute_name,
+      };
+      const searchResults = locsFindObjs(searchArgs);
+      if (searchResults.length > 0) {
+        const foundAttribute = searchResults[0];
+        cacheObject(foundAttribute);
+        return foundAttribute as Attribute;
+      }
+
+      const createdAttribute = locsCreateObj('attribute', {
+        _characterid: character_id,
+        name: attribute_name,
+        ...defaultValues,
+      });
+      return createdAttribute;
     }
 
     function locsGetObj<T extends ObjectType>(type: T, id: Roll20Id): ObjectTypeMap[T] | undefined {
@@ -383,6 +409,7 @@ export const Locs = ((): ILocsFactory => {
       filterObjs: locsFilterObjs,
       getAttrByName: locsGetAttrByName,
       getAttrObjByName: locsGetAttrObjByName,
+      getOrCreateAttrObjByName: locsGetOrCreateAttrObjByName,
       getObj: locsGetObj,
       on: watchEvent,
       onOnce: watchEventOnce,

@@ -10,13 +10,15 @@ interface IEventHandler {
     fire(...objs: Roll20Object[]): void;
     subscribe(callback: (obj: Roll20Object) => void): void;
     subscribeUntilFired(callback: (obj: Roll20Object) => void): void;
-    unsubscribe(callback: (obj: Roll20Object) => void): void;
+    unsubscribe(callback: (obj: Roll20Object) => void): boolean;
 }
 interface ICreateObj {
     <T extends ObjectType>(type: T, properties: ObjectCreationPropertiesMap[T]): ObjectTypeMap[T] | undefined;
 }
 interface IFindObjs {
-    <T extends ObjectType>(properties: Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][];
+    <T extends ObjectType>(properties: {
+        _type: T;
+    } & Partial<ObjectPropertyMap[T]>): ObjectTypeMap[T][];
     (properties: {
         [property: string]: any;
     }): Roll20Object[];
@@ -33,12 +35,28 @@ interface IGetAttrObjByName {
 interface IGetObj {
     <T extends ObjectType>(type: T, id: string): ObjectTypeMap[T] | undefined;
 }
+interface IOn {
+    <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`, callback: (obj: ObjectTypeMap[T]) => void): void;
+    <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(eventLabel: `change:${T}` | `change:${T}:${K}`, callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void): void;
+}
+interface IOnOnce {
+    <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`, callback: (obj: ObjectTypeMap[T]) => void): void;
+    <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(eventLabel: `change:${T}` | `change:${T}:${K}`, callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void): void;
+}
+interface IRemoveOn {
+    <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`, callback: (obj: ObjectTypeMap[T]) => void): boolean;
+    <T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(eventLabel: `change:${T}` | `change:${T}:${K}`, callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void): boolean;
+}
 declare interface ILocs {
     createObj: ICreateObj;
     findObjs: IFindObjs;
     filterObjs: IFilterObjs;
     getAttrByName: IGetAttrByName;
     getAttrObjByName: IGetAttrObjByName;
+    getOrCreateAttrObjByName: IGetAttrObjByName;
     getObj: IGetObj;
+    on: IOn;
+    onOnce: IOnOnce;
+    removeOn: IRemoveOn;
 }
 declare const Locs: ILocsFactory;
