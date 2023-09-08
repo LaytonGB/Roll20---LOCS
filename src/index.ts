@@ -26,6 +26,7 @@ interface IFindObjs {
 }
 
 interface IFilterObjs {
+  <T extends ObjectType>(callback: (obj: Roll20Object) => boolean): T[];
   (callback: (obj: Roll20Object) => boolean): Roll20Object[];
 }
 
@@ -286,6 +287,7 @@ export const Locs = ((): ILocsFactory => {
 
     // TODO WARNING this can fail if the callback references a changing variable
     // at least warn users of this
+    function locsFilterObjs<T extends ObjectType>(callback: (obj: Roll20Object) => boolean): T[];
     function locsFilterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
       const cachedResults = cache.filters.get(callback);
       if (cachedResults) return cachedResults;

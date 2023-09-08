@@ -24,6 +24,7 @@ interface IFindObjs {
     }): Roll20Object[];
 }
 interface IFilterObjs {
+    <T extends ObjectType>(callback: (obj: Roll20Object) => boolean): T[];
     (callback: (obj: Roll20Object) => boolean): Roll20Object[];
 }
 interface IGetAttrByName {

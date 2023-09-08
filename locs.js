@@ -147,8 +147,6 @@ const Locs = (() => {
                 watchEvent(eventLabel, callback);
             return roll20Result;
         }
-        // TODO WARNING this can fail if the callback references a changing variable
-        // at least warn users of this
         function locsFilterObjs(callback) {
             const cachedResults = cache.filters.get(callback);
             if (cachedResults)
