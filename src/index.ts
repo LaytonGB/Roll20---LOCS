@@ -26,7 +26,7 @@ interface IFindObjs {
 }
 
 interface IFilterObjs {
-  <T extends ObjectType>(callback: (obj: Roll20Object) => boolean): T[];
+  <T extends ObjectType>(callback: (obj: Roll20Object) => boolean): ObjectTypeMap[T][];
   (callback: (obj: Roll20Object) => boolean): Roll20Object[];
 }
 
@@ -181,40 +181,16 @@ export const Locs = ((): ILocsFactory => {
       } as T;
     }
 
-    function watchEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
-      eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
-      callback: (obj: ObjectTypeMap[T]) => void
-    ): void;
-    function watchEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
-      eventLabel: `change:${T}` | `change:${T}:${K}`,
-      callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
-    ): void;
     function watchEvent(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribe(callback);
     }
 
-    function watchEventOnce<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
-      eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
-      callback: (obj: ObjectTypeMap[T]) => void
-    ): void;
-    function watchEventOnce<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
-      eventLabel: `change:${T}` | `change:${T}:${K}`,
-      callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
-    ): void;
     function watchEventOnce(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
       const event = getOrCreateEvent(eventLabel);
       event.subscribeUntilFired(callback);
     }
 
-    function stopWatchingEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
-      eventLabel: `add:${T}` | `add:${T}:${K}` | `destroy:${T}` | `destroy:${T}:${K}`,
-      callback: (obj: ObjectTypeMap[T]) => void
-    ): boolean;
-    function stopWatchingEvent<T extends ObjectType, K extends keyof ObjectPropertyMap[T] & string>(
-      eventLabel: `change:${T}` | `change:${T}:${K}`,
-      callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
-    ): boolean;
     function stopWatchingEvent(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): boolean {
       const listener = eventHandlers.get(eventLabel);
       if (!listener) return false;
@@ -287,7 +263,6 @@ export const Locs = ((): ILocsFactory => {
 
     // TODO WARNING this can fail if the callback references a changing variable
     // at least warn users of this
-    function locsFilterObjs<T extends ObjectType>(callback: (obj: Roll20Object) => boolean): T[];
     function locsFilterObjs(callback: (obj: Roll20Object) => boolean): Roll20Object[] {
       const cachedResults = cache.filters.get(callback);
       if (cachedResults) return cachedResults;
