@@ -6,7 +6,7 @@ import { MockObjectName } from './mocks/values';
 import mockValues from './mocks/values';
 import mockFunctions from './mocks/functions';
 
-import { ILocs, Roll20EventLabel, Locs } from '..';
+import { ILocs, Roll20EventLabel } from '..';
 import { MockRoll20Object } from './utils/roll20';
 
 // @ts-ignore not assignable error because of roll20 types
@@ -45,11 +45,21 @@ global.log = (): void => undefined;
 const logMock = jest.fn<void, [string]>(mockFunctions.log);
 /* const logSpy = */ jest.spyOn(global, 'log').mockImplementation(logMock);
 
-describe('state constructor', () => {
-  it('can be created with no input', () => {
-    const locs = Locs.new();
+let Locs: ILocs;
 
-    expect(locs).toBeDefined();
+const importLocsAndResetModules = async (): Promise<void> => {
+  const { Locs: importedLocs } = await import('..');
+  Locs = importedLocs;
+  jest.resetModules();
+};
+
+describe('state constructor', () => {
+  beforeEach(async () => {
+    await importLocsAndResetModules();
+  });
+
+  it('can be created with no input', () => {
+    expect(Locs).toBeDefined();
   });
 });
 
@@ -58,15 +68,14 @@ describe('object fetching', () => {
   const getArgsId = MockObjectName.MOCK_PLAYER;
   const getArgs: [ObjectType, string] = [getArgsType, getArgsId];
 
-  let locs: ILocs;
-  beforeEach(() => {
-    locs = Locs.new();
+  beforeEach(async () => {
+    await importLocsAndResetModules();
   });
 
   it('makes calls for uncached values to roll20', () => {
     expect(getObjSpy).not.toHaveBeenCalled();
 
-    const fetchedCharacter = locs.getObj(...getArgs);
+    const fetchedCharacter = Locs.getObj(...getArgs);
 
     expect(fetchedCharacter).toBeDefined();
     expect(typeof fetchedCharacter?.id).toBe('string');
@@ -79,30 +88,29 @@ describe('object and property caching', () => {
   const getArgsId = MockObjectName.MOCK_GRAPHIC;
   const getArgs: ['graphic', string] = [getArgsType, getArgsId];
 
-  let locs: ILocs;
-  beforeEach(() => {
-    locs = Locs.new();
+  beforeEach(async () => {
+    await importLocsAndResetModules();
   });
 
   it('caches fetched objects', () => {
-    locs.getObj(...getArgs);
+    Locs.getObj(...getArgs);
 
     const getObjCallCount = getObjSpy.mock.calls.length;
 
-    locs.getObj(...getArgs);
+    Locs.getObj(...getArgs);
 
     expect(getObjSpy).toBeCalledTimes(getObjCallCount);
   });
 
   describe('events', () => {
-    beforeEach(() => {
-      locs = Locs.new();
+    beforeEach(async () => {
+      await importLocsAndResetModules();
     });
 
     it('cached objects update when fetched objects are changed', () => {
       const newTopValue = 15;
 
-      const cachedObject = locs.getObj(...getArgs);
+      const cachedObject = Locs.getObj(...getArgs);
       const fetchedObject = getObj(...getArgs);
       fetchedObject?.set('top', newTopValue);
 
@@ -110,20 +118,20 @@ describe('object and property caching', () => {
     });
 
     it('removes cache entries on destroy', () => {
-      const cachedObject = locs.getObj(...getArgs);
+      const cachedObject = Locs.getObj(...getArgs);
       const getObjCallCount = getObjSpy.mock.calls.length;
 
       triggerEvent('destroy', 'graphic', cachedObject as Roll20Object);
 
-      locs.getObj(...getArgs);
+      Locs.getObj(...getArgs);
 
       expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount + 1);
     });
 
-    afterAll(() => {
-      locs = Locs.new();
-      const locsResult = locs.getObj(...getArgs);
-      locsResult?.set('top', mockValues.mockObjectConstants.mockGraphicTop);
+    afterAll(async () => {
+      await importLocsAndResetModules();
+      const LocsResult = Locs.getObj(...getArgs);
+      LocsResult?.set('top', mockValues.mockObjectConstants.mockGraphicTop);
     });
   });
 });
@@ -135,25 +143,24 @@ describe('createObj', () => {
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
 
-  let locs: ILocs;
-  beforeEach(() => {
-    locs = Locs.new();
+  beforeEach(async () => {
+    await importLocsAndResetModules();
   });
 
   it('creates an object that is immediately cached', () => {
-    const newObject = locs.createObj(newObjType, newObjParams);
+    const newObject = Locs.createObj(newObjType, newObjParams);
     if (!newObject) throw new Error('Failed to create object');
 
     const newObjId = newObject.id;
     const getObjCallCount = getObjSpy.mock.calls.length;
-    locs.getObj(newObjType, newObjId);
+    Locs.getObj(newObjType, newObjId);
 
     expect(getObjSpy).toHaveBeenCalledTimes(getObjCallCount);
   });
 
   it('triggers the roll20 add events', () => {
     const createObjCallCount = createObjSpy.mock.calls.length;
-    locs.createObj(newObjType, newObjParams);
+    Locs.createObj(newObjType, newObjParams);
 
     expect(createObjSpy).toHaveBeenCalledTimes(createObjCallCount + 1);
   });
@@ -173,38 +180,37 @@ describe('findObjs', () => {
     top: mockValues.mockObjectConstants.mockGraphicTop,
   };
 
-  let locs: ILocs;
-  beforeEach(() => {
-    locs = Locs.new();
+  beforeEach(async () => {
+    await importLocsAndResetModules();
   });
 
   it('finds relevant items', () => {
-    const foundObjects = locs.findObjs(objSearchParams);
+    const foundObjects = Locs.findObjs(objSearchParams);
 
     expect(foundObjects).toHaveLength(2);
 
     const foundObjectIds = foundObjects.map((obj) => obj.id);
     expect(foundObjectIds).toMatchObject(objSearchResultIds);
 
-    const cachedSearchObjects = locs.findObjs(objSearchParams);
+    const cachedSearchObjects = Locs.findObjs(objSearchParams);
     const cachedObjectIds = cachedSearchObjects.map((obj) => obj.id);
 
     expect(cachedObjectIds).toMatchObject(objSearchResultIds);
   });
 
   it('caches previous searches', () => {
-    locs.findObjs(objSearchParams);
+    Locs.findObjs(objSearchParams);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
 
-    locs.findObjs(objSearchParams);
+    Locs.findObjs(objSearchParams);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('is agnostic about the order of properties', () => {
-    locs.findObjs(objSearchParams);
+    Locs.findObjs(objSearchParams);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    locs.findObjs({
+    Locs.findObjs({
       top: mockValues.mockObjectConstants.mockGraphicTop,
       _type: objSearchType,
     });
@@ -217,23 +223,23 @@ describe('findObjs', () => {
       top: mockValues.mockObjectConstants.mockGraphicTop,
     };
 
-    const findWithoutTypeResults = locs.findObjs(searchParamsWithoutType);
+    const findWithoutTypeResults = Locs.findObjs(searchParamsWithoutType);
 
     expect(findWithoutTypeResults).toHaveLength(2);
 
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    locs.findObjs(searchParamsWithoutType);
+    Locs.findObjs(searchParamsWithoutType);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   it('caches even when no results are found', () => {
-    const noResultsSearchResults = locs.findObjs(noResultsSearchParams);
+    const noResultsSearchResults = Locs.findObjs(noResultsSearchParams);
 
     expect(noResultsSearchResults).toHaveLength(0);
 
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    locs.findObjs(noResultsSearchParams);
+    Locs.findObjs(noResultsSearchParams);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
@@ -242,9 +248,9 @@ describe('findObjs', () => {
     const eventGraphicId = 'on_graphic';
 
     let findObjsResults: Roll20Object[];
-    beforeEach(() => {
-      locs = Locs.new();
-      findObjsResults = locs.findObjs(objSearchParams);
+    beforeEach(async () => {
+      await importLocsAndResetModules();
+      findObjsResults = Locs.findObjs(objSearchParams);
     });
 
     it('adds new results to cache when matching object created', () => {
@@ -256,7 +262,7 @@ describe('findObjs', () => {
 
       triggerEvent('add', 'graphic', newObject);
 
-      const newSearchResults = locs.findObjs(objSearchParams);
+      const newSearchResults = Locs.findObjs(objSearchParams);
 
       expect(newSearchResults).toContain(newObject);
     });
@@ -267,7 +273,7 @@ describe('findObjs', () => {
 
       triggerEvent('destroy', 'graphic', objToBeRemoved);
 
-      const newSearchResults = locs.findObjs(objSearchParams);
+      const newSearchResults = Locs.findObjs(objSearchParams);
 
       expect(newSearchResults).not.toContain(objToBeRemoved);
     });
@@ -278,13 +284,13 @@ describe('findObjs', () => {
       });
       triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
-      const initialFindObjsResultsLength = locs.findObjs(objSearchParams).length;
+      const initialFindObjsResultsLength = Locs.findObjs(objSearchParams).length;
 
       const oldObj = _.cloneDeep(createdObj);
       createdObj.set('top', objSearchParams.top);
       triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-      expect(locs.findObjs(objSearchParams)).toHaveLength(initialFindObjsResultsLength + 1);
+      expect(Locs.findObjs(objSearchParams)).toHaveLength(initialFindObjsResultsLength + 1);
     });
 
     it('removes results when existing entry changed to not match', () => {
@@ -293,13 +299,13 @@ describe('findObjs', () => {
       });
       triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
-      const initialFindObjsResultsLength = locs.findObjs(objSearchParams).length;
+      const initialFindObjsResultsLength = Locs.findObjs(objSearchParams).length;
 
       const oldObj = { _type: createdObj._type, _id: createdObj._id, top: createdObj.get('top') };
       createdObj.set('top', 180);
       triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-      expect(locs.findObjs(objSearchParams)).toHaveLength(initialFindObjsResultsLength - 1);
+      expect(Locs.findObjs(objSearchParams)).toHaveLength(initialFindObjsResultsLength - 1);
     });
   });
 });
@@ -322,33 +328,32 @@ describe('filterObjs', () => {
   };
   const noResultsSearchFilterFunc = newBasicFilterFromParams(noResultsSearchParams);
 
-  let locs: ILocs;
-  beforeEach(() => {
-    locs = Locs.new();
+  beforeEach(async () => {
+    await importLocsAndResetModules();
   });
 
   it('finds relevant items', () => {
-    const resultsWith2Matches = locs.filterObjs(objSearchFilterFunc);
+    const resultsWith2Matches = Locs.filterObjs(objSearchFilterFunc);
 
     expect(resultsWith2Matches).toHaveLength(2);
 
-    const resultsWith0Matches = locs.filterObjs(noResultsSearchFilterFunc);
+    const resultsWith0Matches = Locs.filterObjs(noResultsSearchFilterFunc);
 
     expect(resultsWith0Matches).toHaveLength(0);
   });
 
   it('caches previous searches', () => {
     const initialFilterObjsCalls = filterObjsSpy.mock.calls.length;
-    locs.filterObjs(objSearchFilterFunc);
-    locs.filterObjs(objSearchFilterFunc);
+    Locs.filterObjs(objSearchFilterFunc);
+    Locs.filterObjs(objSearchFilterFunc);
 
     expect(filterObjsSpy).toHaveBeenCalledTimes(initialFilterObjsCalls + 1);
   });
 
   it('caches even when no results are found', () => {
     const initialFilterObjsCalls = filterObjsSpy.mock.calls.length;
-    locs.filterObjs(noResultsSearchFilterFunc);
-    locs.filterObjs(noResultsSearchFilterFunc);
+    Locs.filterObjs(noResultsSearchFilterFunc);
+    Locs.filterObjs(noResultsSearchFilterFunc);
 
     expect(filterObjsSpy).toHaveBeenCalledTimes(initialFilterObjsCalls + 1);
   });
@@ -371,14 +376,14 @@ describe('filterObjs', () => {
     ];
     const cacheCheckFilterFunc = newBasicFilterFromParams({ test: true });
 
-    beforeEach(() => {
-      locs = Locs.new();
-      locs.filterObjs(cacheCheckFilterFunc);
+    beforeEach(async () => {
+      await importLocsAndResetModules();
+      Locs.filterObjs(cacheCheckFilterFunc);
     });
 
     it('adds new results to cache when any matching object created', () => {
       allObjectTypes.forEach((objType) => {
-        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = Locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent(
           'add',
@@ -386,7 +391,7 @@ describe('filterObjs', () => {
           new MockRoll20Object(objType, `FILTEROBJS_CACHE_CREATED_${objType.toUpperCase()}`, { test: true })
         );
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength + 1);
+        expect(Locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength + 1);
       });
     });
 
@@ -401,11 +406,11 @@ describe('filterObjs', () => {
       });
 
       createdObjs.forEach((createdObj) => {
-        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = Locs.filterObjs(cacheCheckFilterFunc).length;
 
         triggerEvent('destroy', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength - 1);
+        expect(Locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength - 1);
       });
     });
 
@@ -415,13 +420,13 @@ describe('filterObjs', () => {
       );
 
       createdObjs.forEach((createdObj) => {
-        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = Locs.filterObjs(cacheCheckFilterFunc).length;
 
         const oldObj = { _type: createdObj._type, _id: createdObj.id, test: createdObj.get('test') };
         createdObj.set('test', true);
         triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength + 1);
+        expect(Locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength + 1);
       });
     });
 
@@ -436,13 +441,13 @@ describe('filterObjs', () => {
       });
 
       createdObjs.forEach((createdObj) => {
-        const initialFilterObjsResultsLength = locs.filterObjs(cacheCheckFilterFunc).length;
+        const initialFilterObjsResultsLength = Locs.filterObjs(cacheCheckFilterFunc).length;
 
         const oldObj = { _type: createdObj._type, _id: createdObj.id, test: createdObj.get('test') };
         createdObj.set('test', false);
         triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
-        expect(locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength - 1);
+        expect(Locs.filterObjs(cacheCheckFilterFunc)).toHaveLength(initialFilterObjsResultsLength - 1);
       });
     });
   });
@@ -452,23 +457,22 @@ describe('getAttrByName and getAttrObjByName', () => {
   const getAttrCharacterId = MockObjectName.MOCK_CHARACTER;
   const getAttrArgs: [string, string] = [getAttrCharacterId, 'hp'];
 
-  let locs: ILocs;
-  beforeEach(() => {
-    locs = Locs.new();
+  beforeEach(async () => {
+    await importLocsAndResetModules();
   });
 
   test('getAttrByName caches each search', () => {
-    locs.getAttrByName(...getAttrArgs);
+    Locs.getAttrByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    locs.getAttrByName(...getAttrArgs);
+    Locs.getAttrByName(...getAttrArgs);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
 
   test('getAttrObjByName caches each search', () => {
-    locs.getAttrObjByName(...getAttrArgs);
+    Locs.getAttrObjByName(...getAttrArgs);
     const findObjsCallCount = findObjsSpy.mock.calls.length;
-    locs.getAttrObjByName(...getAttrArgs);
+    Locs.getAttrObjByName(...getAttrArgs);
 
     expect(findObjsSpy).toHaveBeenCalledTimes(findObjsCallCount);
   });
@@ -476,14 +480,14 @@ describe('getAttrByName and getAttrObjByName', () => {
   test('getOrCreateAttrObjByName', () => {
     const createObjCallCount = createObjSpy.mock.calls.length;
     const undefinedAttrArgs: [string, string] = ['UNDEFINED_CHARACTER', 'UNDEFINED_ID'];
-    const foundOrCreatedAttribute = locs.getOrCreateAttrObjByName(...undefinedAttrArgs);
+    const foundOrCreatedAttribute = Locs.getOrCreateAttrObjByName(...undefinedAttrArgs);
 
     expect(foundOrCreatedAttribute).toBeDefined();
     expect(createObjSpy).toHaveBeenCalledTimes(createObjCallCount + 1);
   });
 
   test('event checks', () => {
-    const getAttrResult = locs.getAttrObjByName(...getAttrArgs) as Attribute;
+    const getAttrResult = Locs.getAttrObjByName(...getAttrArgs) as Attribute;
     const oldResult: AttributeImmutableSynchronousGetProperties & AttributeMutableSynchronousGetProperties = (
       ['_type', '_id', '_characterid', 'name', 'current', 'max'] as (keyof ObjectPropertyMap['attribute'])[]
     ).reduce((obj, propName): object => {
@@ -493,7 +497,7 @@ describe('getAttrByName and getAttrObjByName', () => {
     getAttrResult?.set('name', 'new_name');
     triggerEvent('change', 'attribute', getAttrResult, oldResult);
 
-    const newGetAttrResult = locs.getAttrObjByName(...getAttrArgs);
+    const newGetAttrResult = Locs.getAttrObjByName(...getAttrArgs);
     expect(newGetAttrResult).toBeUndefined();
   });
 });

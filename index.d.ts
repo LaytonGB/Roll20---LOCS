@@ -3,9 +3,6 @@ declare type EventType = 'add' | 'change' | 'destroy';
 declare type Roll20Id = string;
 declare type Roll20EventLabel = string;
 declare type SearchKey = string;
-declare interface ILocsFactory {
-    new: () => ILocs;
-}
 interface IEventHandler {
     fire(...objs: Roll20Object[]): void;
     subscribe(callback: (obj: Roll20Object) => void): void;
@@ -60,4 +57,4 @@ declare interface ILocs {
     onOnce: IOnOnce;
     removeOn: IRemoveOn;
 }
-declare const Locs: ILocsFactory;
+declare const Locs: ILocs;
