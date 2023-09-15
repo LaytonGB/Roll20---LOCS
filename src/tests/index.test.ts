@@ -169,7 +169,7 @@ describe('createObj', () => {
 describe('findObjs', () => {
   const objSearchResultIds = [MockObjectName.CREATED_GRAPHIC, MockObjectName.MOCK_GRAPHIC];
 
-  const objSearchType = 'graphic' as ObjectType;
+  const objSearchType = 'graphic' as const;
   const objSearchParams = {
     _type: objSearchType,
     top: mockValues.mockObjectConstants.mockGraphicTop,
@@ -279,7 +279,7 @@ describe('findObjs', () => {
     });
 
     it('adds new results to cache when object changed to match', () => {
-      const createdObj: Roll20Object = new MockRoll20Object(objSearchType, `FINDOBJS_CACHE_CREATED_${objSearchType}`, {
+      const createdObj = new MockRoll20Object(objSearchType, `FINDOBJS_CACHE_CREATED_${objSearchType}`, {
         top: 180,
       });
       triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
@@ -294,14 +294,14 @@ describe('findObjs', () => {
     });
 
     it('removes results when existing entry changed to not match', () => {
-      const createdObj: Roll20Object = new MockRoll20Object(objSearchType, `FINDOBJS_CACHE_CREATED_${objSearchType}`, {
+      const createdObj = new MockRoll20Object(objSearchType, `FINDOBJS_CACHE_CREATED_${objSearchType}`, {
         top: objSearchParams.top,
       });
       triggerEvent('add', `${createdObj.get('_type') as ObjectType}`, createdObj);
 
       const initialFindObjsResultsLength = Locs.findObjs(objSearchParams).length;
 
-      const oldObj = { _type: createdObj._type, _id: createdObj._id, top: createdObj.get('top') };
+      const oldObj = { _type: createdObj.get('_type'), _id: createdObj._id, top: createdObj.get('top') };
       createdObj.set('top', 180);
       triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
@@ -422,7 +422,7 @@ describe('filterObjs', () => {
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength = Locs.filterObjs(cacheCheckFilterFunc).length;
 
-        const oldObj = { _type: createdObj._type, _id: createdObj.id, test: createdObj.get('test') };
+        const oldObj = { _type: createdObj.get('_type'), _id: createdObj.id, test: createdObj.get('test') };
         createdObj.set('test', true);
         triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 
@@ -443,7 +443,7 @@ describe('filterObjs', () => {
       createdObjs.forEach((createdObj) => {
         const initialFilterObjsResultsLength = Locs.filterObjs(cacheCheckFilterFunc).length;
 
-        const oldObj = { _type: createdObj._type, _id: createdObj.id, test: createdObj.get('test') };
+        const oldObj = { _type: createdObj.get('_type'), _id: createdObj.id, test: createdObj.get('test') };
         createdObj.set('test', false);
         triggerEvent('change', `${createdObj.get('_type') as ObjectType}`, createdObj, oldObj);
 

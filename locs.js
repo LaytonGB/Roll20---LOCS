@@ -204,7 +204,7 @@ const Locs = (() => {
         const attrObj = locsGetAttrObjByName(character_id, attribute_name);
         if (!attrObj)
             return '';
-        return attrObj.get(value_type);
+        return attrObj.get(value_type).toString();
     }
     // TODO RESEARCH does roll20 manage duplicate named attributes?
     function locsGetAttrObjByName(character_id, attribute_name) {

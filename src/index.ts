@@ -169,14 +169,22 @@ export const Locs = ((): ILocs => {
       .join('&');
   }
 
-  function roll20ObjectPropertiesAsObject<T extends Roll20Object>(obj: ObjectPropertyMap[T['_type']]): T {
+  function roll20ObjectPropertiesAsObject<T extends Roll20Object>(obj: ObjectPropertyMap[ReturnType<T['get']>]): T {
     return {
       id: obj._id,
-      get: (property: keyof ObjectPropertyMap[T['_type']]): any => obj[property],
+      get: (property: keyof ObjectPropertyMap[ReturnType<T['get']>]): any => obj[property],
     } as T;
   }
 
-  function watchEvent(eventLabel: Roll20EventLabel, callback: (...objs: Roll20Object[]) => void): void {
+  function watchEvent<T extends ObjectType>(
+    eventLabel: `add:${T}` | `destroy:${T}`,
+    callback: (obj: Roll20Object) => void
+  ): void;
+  function watchEvent<T extends ObjectType>(
+    eventLabel: `change:${T}` | `change:${T}:${string & keyof ObjectPropertyMap[T]}`,
+    callback: (obj: ObjectTypeMap[T], oldObj: ObjectPropertyMap[T]) => void
+  ): void;
+  function watchEvent(eventLabel: Roll20EventLabel, callback: (...objs: any[]) => void): void {
     const event = getOrCreateEvent(eventLabel);
     event.subscribe(callback);
   }
@@ -322,7 +330,7 @@ export const Locs = ((): ILocs => {
     const attrObj = locsGetAttrObjByName(character_id, attribute_name);
     if (!attrObj) return '';
 
-    return attrObj.get(value_type);
+    return attrObj.get(value_type).toString();
   }
 
   // TODO RESEARCH does roll20 manage duplicate named attributes?
