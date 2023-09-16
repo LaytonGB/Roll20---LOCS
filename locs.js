@@ -200,6 +200,7 @@ const Locs = (() => {
         });
         return newCacheResults;
     }
+    // TODO add a system for caching when there is no result (must update when result created)
     function locsGetAttrByName(character_id, attribute_name, value_type = 'current') {
         const attrObj = locsGetAttrObjByName(character_id, attribute_name);
         if (!attrObj)

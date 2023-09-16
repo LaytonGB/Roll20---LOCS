@@ -330,6 +330,7 @@ export const Locs = ((): ILocs => {
     return newCacheResults;
   }
 
+  // TODO add a system for caching when there is no result (must update when result created)
   function locsGetAttrByName(
     character_id: string,
     attribute_name: string,
@@ -348,11 +349,11 @@ export const Locs = ((): ILocs => {
       _characterid: character_id,
       name: attribute_name,
     };
-    const searchResults = locsFindObjs(searchArgs);
+    const searchResults = locsFindObjs<'attribute'>(searchArgs);
     if (searchResults.length > 0) {
       const foundAttribute = searchResults[0];
       cacheObject(foundAttribute);
-      return foundAttribute as Attribute | undefined;
+      return foundAttribute;
     }
   }
 
