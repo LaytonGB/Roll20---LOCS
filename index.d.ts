@@ -32,8 +32,8 @@ interface IGetAttrObjByName {
 }
 interface IGetOrCreateAttrObjByName {
     (character_id: Roll20Id, attribute_name: string, defaultValues?: {
-        current?: string;
-        max?: string;
+        current?: string | number;
+        max?: string | number;
     }): Attribute | undefined;
 }
 interface IGetObj {
