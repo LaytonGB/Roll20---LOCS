@@ -30,6 +30,12 @@ interface IGetAttrByName {
 interface IGetAttrObjByName {
     (character_id: Roll20Id, attribute_name: string): Attribute | undefined;
 }
+interface IGetOrCreateAttrObjByName {
+    (character_id: Roll20Id, attribute_name: string, defaultValues?: {
+        current?: string;
+        max?: string;
+    }): Attribute | undefined;
+}
 interface IGetObj {
     <T extends ObjectType>(type: T, id: string): ObjectTypeMap[T] | undefined;
 }
@@ -51,7 +57,7 @@ declare interface ILocs {
     filterObjs: IFilterObjs;
     getAttrByName: IGetAttrByName;
     getAttrObjByName: IGetAttrObjByName;
-    getOrCreateAttrObjByName: IGetAttrObjByName;
+    getOrCreateAttrObjByName: IGetOrCreateAttrObjByName;
     getObj: IGetObj;
     on: IOn;
     onOnce: IOnOnce;
