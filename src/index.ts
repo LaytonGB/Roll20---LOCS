@@ -35,9 +35,11 @@ interface IGetAttrObjByName {
 }
 
 interface IGetOrCreateAttrObjByName {
-  (character_id: Roll20Id, attribute_name: string, defaultValues?: { current?: string; max?: string }):
-    | Attribute
-    | undefined;
+  (
+    character_id: Roll20Id,
+    attribute_name: string,
+    defaultValues?: { current?: string | number; max?: string | number }
+  ): Attribute | undefined;
 }
 
 interface IGetObj {
@@ -357,7 +359,7 @@ export const Locs = ((): ILocs => {
   function locsGetOrCreateAttrObjByName(
     character_id: string,
     attribute_name: string,
-    defaultValues?: { current?: string; max?: string }
+    defaultValues?: { current?: string | number; max?: string | number }
   ): Attribute | undefined {
     const searchArgs = {
       _type: 'attribute' as const,
